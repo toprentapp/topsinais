@@ -155,18 +155,35 @@
         </p>
       </div>
 
-      <!-- Selector -->
-      <div class="glass-effect rounded-2xl p-4 sm:p-6 mb-6">
-        <label for="casa-selector" class="block mb-3 text-sm sm:text-base font-semibold text-gray-300">
-          🏠 Selecione a Casa
-        </label>
-        <select
-          id="casa-selector"
-          class="custom-select glass-effect border border-indigo-500/30 text-white text-sm sm:text-base rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent block w-full p-3 sm:p-4 transition-all cursor-pointer"
-        >
-          <option value="br4betcom">BR4BET</option>
-          <option value="openbox">OpenBox</option>
-        </select>
+      <!-- Selectors -->
+      <div class="glass-effect rounded-2xl p-4 sm:p-6 mb-6 space-y-4">
+        <div>
+          <label for="casa-selector" class="block mb-3 text-sm sm:text-base font-semibold text-gray-300">
+            🏠 Selecione a Casa
+          </label>
+          <select
+            id="casa-selector"
+            class="custom-select glass-effect border border-indigo-500/30 text-white text-sm sm:text-base rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent block w-full p-3 sm:p-4 transition-all cursor-pointer"
+          >
+            <option value="br4betcom">BR4BET</option>
+            <option value="openbox">OpenBox</option>
+          </select>
+        </div>
+        
+        <div>
+          <label for="color-filter" class="block mb-3 text-sm sm:text-base font-semibold text-gray-300">
+            🎨 Filtrar por Cor
+          </label>
+          <select
+            id="color-filter"
+            class="custom-select glass-effect border border-indigo-500/30 text-white text-sm sm:text-base rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent block w-full p-3 sm:p-4 transition-all cursor-pointer"
+          >
+            <option value="all">Todas as Cores</option>
+            <option value="rosa">🌸 Rosas (≥10x)</option>
+            <option value="roxa">💜 Roxas</option>
+            <option value="azul">💙 Azuis</option>
+          </select>
+        </div>
       </div>
 
       <!-- Status Badge -->
@@ -205,9 +222,11 @@
         }
 
         const casaSelector = document.getElementById("casa-selector");
+        const colorFilter = document.getElementById("color-filter");
         const historicoContainer = document.getElementById("historico-container");
         const loadingElement = document.getElementById("loading");
         let selectedNumber = null;
+        let selectedColorFilter = "all";
 
         function formatDate(timestamp) {
           const date = new Date(timestamp);
@@ -253,6 +272,19 @@
           return "vela-cinza";
         }
 
+        function getVelaType(vela) {
+          const numero = parseFloat(vela.numero);
+          if (numero >= 10) {
+            return "rosa";
+          }
+          return vela.cor;
+        }
+
+        function shouldShowVela(velaType) {
+          if (selectedColorFilter === "all") return true;
+          return velaType === selectedColorFilter;
+        }
+
         function renderVelas(velas) {
           loadingElement.classList.add('hidden');
           historicoContainer.innerHTML = "";
@@ -261,6 +293,7 @@
             const velaElement = document.createElement("div");
             const numero = parseFloat(vela.numero).toFixed(2);
             const horario = formatDate(vela.horario);
+            const velaType = getVelaType(vela);
             
             velaElement.innerHTML = `
               <div class="numero-vela">${numero}x</div>
@@ -268,7 +301,13 @@
             `;
             
             velaElement.dataset.numero = numero;
+            velaElement.dataset.type = velaType;
             velaElement.className = `vela-card p-2 sm:p-2.5 rounded-xl text-center cursor-pointer ${getVelaClass(vela)}`;
+
+            // Aplica filtro de cor
+            if (!shouldShowVela(velaType)) {
+              velaElement.classList.add("dimmed");
+            }
 
             if (selectedNumber && velaElement.dataset.numero === selectedNumber) {
               velaElement.classList.add("highlight");
@@ -336,6 +375,12 @@
         casaSelector.addEventListener("change", () => {
           selectedNumber = null;
           loadingElement.classList.remove('hidden');
+          fetchVelas();
+        });
+
+        colorFilter.addEventListener("change", () => {
+          selectedColorFilter = colorFilter.value;
+          selectedNumber = null;
           fetchVelas();
         });
 
