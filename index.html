@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Top Sinais - Aviator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+      
+      * {
+        font-family: 'Inter', sans-serif;
+      }
+      
+      body {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        min-height: 100vh;
+      }
+      
+      .glass-effect {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      .vela-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+      
+      .vela-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+      }
+      
+      .vela-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transform: translateX(-100%);
+        transition: transform 0.6s;
+      }
+      
+      .vela-card:hover::before {
+        transform: translateX(100%);
+      }
+      
+      .highlight {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+        color: #000 !important;
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(251, 191, 36, 0.5) !important;
+      }
+      
+      .vela-rosa {
+        background: linear-gradient(135deg, #ec4899 0%, #d00f70 100%);
+        color: white;
+      }
+      
+      .vela-roxa {
+        background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+        color: white;
+      }
+      
+      .vela-azul {
+        background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+        color: white;
+      }
+      
+      .vela-cinza {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        color: white;
+      }
+      
+      .numero-vela {
+        font-size: 1.25rem;
+        font-weight: 800;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+      
+      .horario-vela {
+        font-size: 13px;
+        font-weight: 500;
+        opacity: 0.9;
+        margin-top: 0.25rem;
+      }
+      
+      .header-gradient {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      .pulse-animation {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: .7;
+        }
+      }
+      
+      .custom-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a5b4fc' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+      }
+      
+      @media (max-width: 640px) {
+        .numero-vela {
+          font-size: 1rem;
+        }
+        .horario-vela {
+          font-size: 11px;
+        }
+      }
+    </style>
+  </head>
+  <body class="p-4 sm:p-6 lg:p-8">
+    <div class="container mx-auto max-w-7xl">
+      <!-- Header -->
+      <div class="glass-effect rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8">
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-center mb-2 header-gradient">
+          🚀 Top Sinais - Aviator
+        </h1>
+        <p class="text-center text-gray-400 text-sm sm:text-base">
+          Histórico de velas em tempo real
+        </p>
+      </div>
+
+      <!-- Selector -->
+      <div class="glass-effect rounded-2xl p-4 sm:p-6 mb-6">
+        <label for="casa-selector" class="block mb-3 text-sm sm:text-base font-semibold text-gray-300">
+          🏠 Selecione a Casa
+        </label>
+        <select
+          id="casa-selector"
+          class="custom-select glass-effect border border-indigo-500/30 text-white text-sm sm:text-base rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent block w-full p-3 sm:p-4 transition-all cursor-pointer"
+        >
+          <option value="br4betcom">BR4BET</option>
+          <option value="openbox">OpenBox</option>
+        </select>
+      </div>
+
+      <!-- Status Badge -->
+      <div class="flex justify-center mb-6">
+        <div class="glass-effect rounded-full px-4 sm:px-6 py-2 flex items-center gap-2">
+          <div class="w-2 h-2 bg-green-500 rounded-full pulse-animation"></div>
+          <span class="text-xs sm:text-sm font-medium text-gray-300">Conectado</span>
+        </div>
+      </div>
+
+      <!-- Grid de Velas -->
+      <div id="historico-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
+        <!-- As velas serão inseridas aqui -->
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading" class="text-center py-12 hidden">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
+        <p class="mt-4 text-gray-400">Carregando velas...</p>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const SUPABASE_URL = "https://zdkqorcrppituzmgeuon.supabase.co";
+        const SUPABASE_ANON_KEY =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpka3FvcmNycHBpdHV6bWdldW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwODkwNTcsImV4cCI6MjA2MzY2NTA1N30.ULLInPNIQCwYzCqkt_v-w7kZH31ACTz_03DNLG4ZA8E";
+
+        let supabaseClient;
+        try {
+          supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          console.log("✅ Supabase client initialized successfully");
+        } catch (e) {
+          console.error("❌ Error initializing Supabase client:", e);
+          return;
+        }
+
+        const casaSelector = document.getElementById("casa-selector");
+        const historicoContainer = document.getElementById("historico-container");
+        const loadingElement = document.getElementById("loading");
+        let selectedNumber = null;
+
+        function formatDate(timestamp) {
+          const date = new Date(timestamp);
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const year = date.getFullYear();
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const seconds = String(date.getSeconds()).padStart(2, '0');
+          return `${day}/${month}/${year} - ${hours}:${minutes}:${seconds}`;
+        }
+
+        async function fetchVelas() {
+          const casa = casaSelector.value;
+          if (!casa) return;
+
+          const { data, error } = await supabaseClient
+            .from("velas")
+            .select("*")
+            .eq("casa", casa)
+            .order("horario", { ascending: false })
+            .limit(500);
+
+          if (error) {
+            console.error("❌ Error fetching velas:", error);
+            return;
+          }
+
+          renderVelas(data);
+        }
+
+        function getVelaClass(vela) {
+          const numero = parseFloat(vela.numero);
+          if (numero >= 10) {
+            return "vela-rosa";
+          }
+          if (vela.cor === "roxa") {
+            return "vela-roxa";
+          }
+          if (vela.cor === "azul") {
+            return "vela-azul";
+          }
+          return "vela-cinza";
+        }
+
+        function renderVelas(velas) {
+          loadingElement.classList.add('hidden');
+          historicoContainer.innerHTML = "";
+          
+          velas.forEach((vela) => {
+            const velaElement = document.createElement("div");
+            const numero = parseFloat(vela.numero).toFixed(2);
+            const horario = formatDate(vela.horario);
+            
+            velaElement.innerHTML = `
+              <div class="numero-vela">${numero}x</div>
+              <div class="horario-vela">${horario}</div>
+            `;
+            
+            velaElement.dataset.numero = numero;
+            velaElement.className = `vela-card p-3 sm:p-4 rounded-xl text-center cursor-pointer ${getVelaClass(vela)}`;
+
+            if (selectedNumber && velaElement.dataset.numero === selectedNumber) {
+              velaElement.classList.add("highlight");
+            }
+
+            historicoContainer.appendChild(velaElement);
+          });
+        }
+
+        function handleVelaClick(event) {
+          const target = event.target.closest('.vela-card');
+          if (target && target.dataset.numero) {
+            const clickedNumber = target.dataset.numero;
+
+            if (selectedNumber === clickedNumber) {
+              selectedNumber = null;
+            } else {
+              selectedNumber = clickedNumber;
+            }
+
+            const allVelas = Array.from(historicoContainer.children);
+            allVelas.forEach((velaDiv) => {
+              velaDiv.classList.remove("highlight");
+              if (selectedNumber && velaDiv.dataset.numero === selectedNumber) {
+                velaDiv.classList.add("highlight");
+              }
+            });
+          }
+        }
+
+        casaSelector.addEventListener("change", () => {
+          selectedNumber = null;
+          loadingElement.classList.remove('hidden');
+          fetchVelas();
+        });
+
+        historicoContainer.addEventListener("click", handleVelaClick);
+
+        // Fetch inicial
+        loadingElement.classList.remove('hidden');
+        fetchVelas();
+        
+        // Atualizar a cada 1 segundo
+        setInterval(fetchVelas, 1000);
+      });
+    </script>
+  </body>
+</html>
