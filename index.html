@@ -92,16 +92,16 @@
       }
       
       .numero-vela {
-        font-size: 1.25rem;
+        font-size: 0.875rem;
         font-weight: 800;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       
       .horario-vela {
-        font-size: 13px;
+        font-size: 9px;
         font-weight: 500;
         opacity: 0.9;
-        margin-top: 0.25rem;
+        margin-top: 0.15rem;
       }
       
       .header-gradient {
@@ -134,10 +134,10 @@
       
       @media (max-width: 640px) {
         .numero-vela {
-          font-size: 1rem;
+          font-size: 0.7rem;
         }
         .horario-vela {
-          font-size: 11px;
+          font-size: 7.7px;
         }
       }
     </style>
@@ -177,7 +177,7 @@
       </div>
 
       <!-- Grid de Velas -->
-      <div id="historico-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
+      <div id="historico-container" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-2 sm:gap-2.5">
         <!-- As velas serão inseridas aqui -->
       </div>
 
@@ -267,7 +267,7 @@
             `;
             
             velaElement.dataset.numero = numero;
-            velaElement.className = `vela-card p-3 sm:p-4 rounded-xl text-center cursor-pointer ${getVelaClass(vela)}`;
+            velaElement.className = `vela-card p-2 sm:p-2.5 rounded-xl text-center cursor-pointer ${getVelaClass(vela)}`;
 
             if (selectedNumber && velaElement.dataset.numero === selectedNumber) {
               velaElement.classList.add("highlight");
