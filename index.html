@@ -59,6 +59,18 @@
         box-shadow: 0 0 20px rgba(251, 191, 36, 0.5) !important;
       }
       
+      .dimmed {
+        opacity: 0.3;
+        filter: brightness(0.5);
+      }
+      
+      .next-rosa {
+        opacity: 1 !important;
+        filter: brightness(1) !important;
+        box-shadow: 0 0 15px rgba(236, 72, 153, 0.6);
+        border: 2px solid #ec4899;
+      }
+      
       .vela-rosa {
         background: linear-gradient(135deg, #ec4899 0%, #d00f70 100%);
         color: white;
@@ -259,10 +271,27 @@
 
             if (selectedNumber && velaElement.dataset.numero === selectedNumber) {
               velaElement.classList.add("highlight");
+            } else if (selectedNumber) {
+              velaElement.classList.add("dimmed");
             }
 
             historicoContainer.appendChild(velaElement);
           });
+          
+          // Aplica o destaque nas velas rosas após selecionadas
+          if (selectedNumber) {
+            const allVelas = Array.from(historicoContainer.children);
+            allVelas.forEach((velaDiv, index) => {
+              if (velaDiv.dataset.numero === selectedNumber && index > 0) {
+                const nextVela = allVelas[index - 1];
+                const nextNumero = parseFloat(nextVela.dataset.numero);
+                if (nextNumero >= 10) {
+                  nextVela.classList.remove("dimmed");
+                  nextVela.classList.add("next-rosa");
+                }
+              }
+            });
+          }
         }
 
         function handleVelaClick(event) {
@@ -277,10 +306,27 @@
             }
 
             const allVelas = Array.from(historicoContainer.children);
-            allVelas.forEach((velaDiv) => {
-              velaDiv.classList.remove("highlight");
-              if (selectedNumber && velaDiv.dataset.numero === selectedNumber) {
-                velaDiv.classList.add("highlight");
+            allVelas.forEach((velaDiv, index) => {
+              velaDiv.classList.remove("highlight", "dimmed", "next-rosa");
+              
+              if (selectedNumber) {
+                // Se o número atual é o selecionado, destaca
+                if (velaDiv.dataset.numero === selectedNumber) {
+                  velaDiv.classList.add("highlight");
+                  
+                  // Verifica se a próxima vela é rosa (>= 10)
+                  if (index > 0) {
+                    const nextVela = allVelas[index - 1];
+                    const nextNumero = parseFloat(nextVela.dataset.numero);
+                    if (nextNumero >= 10) {
+                      nextVela.classList.remove("dimmed");
+                      nextVela.classList.add("next-rosa");
+                    }
+                  }
+                } else {
+                  // Escurece as outras velas
+                  velaDiv.classList.add("dimmed");
+                }
               }
             });
           }
