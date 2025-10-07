@@ -60,10 +60,10 @@
         box-shadow: 0 0 20px rgba(251, 191, 36, 0.5) !important;
       }
       
-      .dimmed {
-        opacity: 0.3;
-        filter: brightness(0.5);
-      }
+.dimmed {
+  opacity: 0.6;
+  filter: brightness(0.8);
+}
       
       .next-rosa {
         opacity: 1 !important;
@@ -133,21 +133,6 @@
         padding-right: 2.5rem;
       }
       
-      .btn-delete {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        transition: all 0.3s ease;
-      }
-      
-      .btn-delete:hover {
-        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(239, 68, 68, 0.4);
-      }
-      
-      .btn-delete:active {
-        transform: translateY(0);
-      }
-      
       @media (max-width: 640px) {
         .numero-vela {
           font-size: 0.85rem;
@@ -199,19 +184,6 @@
             <option value="azul">💙 Azuis</option>
           </select>
         </div>
-
-        <!-- Botão de Limpar -->
-        <div>
-          <button
-            id="clear-button"
-            class="btn-delete w-full text-white font-bold py-3 sm:py-4 px-6 rounded-xl flex items-center justify-center gap-2 text-sm sm:text-base"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-            </svg>
-            🗑️ Limpar Todas as Velas desta Casa
-          </button>
-        </div>
       </div>
 
       <!-- Status Badge -->
@@ -251,7 +223,6 @@
 
         const casaSelector = document.getElementById("casa-selector");
         const colorFilter = document.getElementById("color-filter");
-        const clearButton = document.getElementById("clear-button");
         const historicoContainer = document.getElementById("historico-container");
         const loadingElement = document.getElementById("loading");
         let selectedNumber = null;
@@ -285,47 +256,6 @@
           }
 
           renderVelas(data);
-        }
-
-        async function clearVelas() {
-          const casa = casaSelector.value;
-          if (!casa) return;
-
-          const confirmed = confirm(`⚠️ Tem certeza que deseja limpar TODAS as velas da casa "${casa === 'br4betcom' ? 'BR4BET' : 'OpenBox'}"?\n\nEsta ação não pode ser desfeita!`);
-          
-          if (!confirmed) return;
-
-          clearButton.disabled = true;
-          clearButton.innerHTML = `
-            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Limpando...
-          `;
-
-          const { error } = await supabaseClient
-            .from("velas")
-            .delete()
-            .eq("casa", casa);
-
-          if (error) {
-            console.error("❌ Error deleting velas:", error);
-            alert("❌ Erro ao limpar velas. Tente novamente.");
-          } else {
-            console.log("✅ All velas deleted successfully for casa:", casa);
-            alert("✅ Todas as velas foram limpas com sucesso!");
-            historicoContainer.innerHTML = "";
-            selectedNumber = null;
-          }
-
-          clearButton.disabled = false;
-          clearButton.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-            </svg>
-            🗑️ Limpar Todas as Velas desta Casa
-          `;
         }
 
         function getVelaClass(vela) {
@@ -374,6 +304,7 @@
             velaElement.dataset.type = velaType;
             velaElement.className = `vela-card p-2 sm:p-2.5 rounded-xl text-center cursor-pointer ${getVelaClass(vela)}`;
 
+            // Aplica filtro de cor
             if (!shouldShowVela(velaType)) {
               velaElement.classList.add("dimmed");
             }
@@ -387,6 +318,7 @@
             historicoContainer.appendChild(velaElement);
           });
           
+          // Aplica o destaque nas velas rosas após selecionadas
           if (selectedNumber) {
             const allVelas = Array.from(historicoContainer.children);
             allVelas.forEach((velaDiv, index) => {
@@ -418,9 +350,11 @@
               velaDiv.classList.remove("highlight", "dimmed", "next-rosa");
               
               if (selectedNumber) {
+                // Se o número atual é o selecionado, destaca
                 if (velaDiv.dataset.numero === selectedNumber) {
                   velaDiv.classList.add("highlight");
                   
+                  // Verifica se a próxima vela é rosa (>= 10)
                   if (index > 0) {
                     const nextVela = allVelas[index - 1];
                     const nextNumero = parseFloat(nextVela.dataset.numero);
@@ -430,6 +364,7 @@
                     }
                   }
                 } else {
+                  // Escurece as outras velas
                   velaDiv.classList.add("dimmed");
                 }
               }
@@ -449,13 +384,13 @@
           fetchVelas();
         });
 
-        clearButton.addEventListener("click", clearVelas);
-
         historicoContainer.addEventListener("click", handleVelaClick);
 
+        // Fetch inicial
         loadingElement.classList.remove('hidden');
         fetchVelas();
         
+        // Atualizar a cada 1 segundo
         setInterval(fetchVelas, 1000);
       });
     </script>
