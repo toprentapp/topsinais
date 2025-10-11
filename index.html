@@ -27,7 +27,7 @@
       
       .vela-card {
         position: relative;
-        overflow: hidden;
+        overflow: visible;
         transition: all 0.3s ease;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
       }
@@ -60,10 +60,10 @@
         box-shadow: 0 0 20px rgba(251, 191, 36, 0.5) !important;
       }
       
-.dimmed {
-  opacity: 0.6;
-  filter: brightness(0.8);
-}
+      .dimmed {
+        opacity: 0.6;
+        filter: brightness(0.8);
+      }
       
       .next-rosa {
         opacity: 1 !important;
@@ -133,6 +133,25 @@
         padding-right: 2.5rem;
       }
       
+      .interval-badge {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 700;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+        z-index: 20;
+      }
+      
       @media (max-width: 640px) {
         .numero-vela {
           font-size: 0.85rem;
@@ -140,6 +159,45 @@
         .horario-vela {
           font-size: 7.7px;
         }
+      }
+
+      /* Modal Styles */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+
+      .modal-overlay.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .modal-content {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border: 2px solid rgba(239, 68, 68, 0.5);
+        border-radius: 1.5rem;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+      }
+
+      .modal-overlay.active .modal-content {
+        transform: scale(1);
       }
     </style>
   </head>
@@ -167,6 +225,7 @@
           >
             <option value="br4betcom">BR4BET</option>
             <option value="openbox">OpenBox</option>
+            <option value="Jetx-ApostaTudo">Jetx - Aposta tudo</option>
           </select>
         </div>
         
@@ -184,6 +243,33 @@
             <option value="azul">💙 Azuis</option>
           </select>
         </div>
+
+        <div class="flex items-center justify-between p-4 glass-effect border border-indigo-500/30 rounded-xl">
+          <div>
+            <label for="interval-toggle" class="text-sm sm:text-base font-semibold text-gray-300 cursor-pointer">
+              📊 Marcar Intervalos Rosa
+            </label>
+            <p class="text-xs text-gray-500 mt-1">Numera velas após cada rosa</p>
+          </div>
+          <button
+            id="interval-toggle"
+            role="switch"
+            aria-checked="false"
+            class="relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 bg-gray-600"
+          >
+            <span class="translate-x-1 inline-block h-5 w-5 transform rounded-full bg-white transition-transform"></span>
+          </button>
+        </div>
+
+        <div class="mt-4">
+          <button
+            id="clear-history-btn"
+            class="w-full px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <span>🗑️</span>
+            <span>Limpar Todo Histórico</span>
+          </button>
+        </div>
       </div>
 
       <!-- Status Badge -->
@@ -191,6 +277,16 @@
         <div class="glass-effect rounded-full px-4 sm:px-6 py-2 flex items-center gap-2">
           <div class="w-2 h-2 bg-green-500 rounded-full pulse-animation"></div>
           <span class="text-xs sm:text-sm font-medium text-gray-300">Conectado</span>
+        </div>
+      </div>
+
+      <!-- Análise de Antecessores -->
+      <div id="analise-antecessores" class="glass-effect rounded-xl p-3 mb-6 max-h-[200px] overflow-y-auto">
+        <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
+          <span class="font-semibold text-gray-300">📊 Antecessores de Rosa:</span>
+          <div id="antecessores-list" class="flex gap-2 flex-wrap">
+            <span class="text-gray-500">Carregando análise...</span>
+          </div>
         </div>
       </div>
 
@@ -203,6 +299,40 @@
       <div id="loading" class="text-center py-12 hidden">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
         <p class="mt-4 text-gray-400">Carregando velas...</p>
+      </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="text-center mb-6">
+          <div class="text-6xl mb-4">⚠️</div>
+          <h2 class="text-2xl font-bold text-white mb-2">Confirmar Exclusão</h2>
+          <p class="text-gray-400 text-sm">Esta ação não pode ser desfeita!</p>
+        </div>
+        
+        <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
+          <p class="text-white font-semibold mb-2">Você está prestes a excluir:</p>
+          <p class="text-red-400 text-sm">
+            ✗ Todo o histórico de velas da casa: <span id="modal-casa-name" class="font-bold"></span>
+          </p>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            id="modal-cancel-btn"
+            class="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-all duration-200"
+          >
+            Cancelar
+          </button>
+          <button
+            id="modal-confirm-btn"
+            class="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <span>🗑️</span>
+            <span>Confirmar Exclusão</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -223,10 +353,12 @@
 
         const casaSelector = document.getElementById("casa-selector");
         const colorFilter = document.getElementById("color-filter");
+        const intervalToggle = document.getElementById("interval-toggle");
         const historicoContainer = document.getElementById("historico-container");
         const loadingElement = document.getElementById("loading");
         let selectedNumber = null;
         let selectedColorFilter = "all";
+        let showIntervals = false;
 
         function formatDate(timestamp) {
           const date = new Date(timestamp);
@@ -285,17 +417,165 @@
           return velaType === selectedColorFilter;
         }
 
+        function analisarAntecessores(velas) {
+          const antecessoresMap = new Map();
+          const totalAparicoesMap = new Map();
+          
+          // Primeiro, conta todas as aparições de cada número
+          velas.forEach(vela => {
+            const numero = parseFloat(vela.numero).toFixed(2);
+            totalAparicoesMap.set(numero, (totalAparicoesMap.get(numero) || 0) + 1);
+          });
+          
+          // Percorre as velas para encontrar rosas e seus antecessores
+          for (let i = 0; i < velas.length; i++) {
+            const vela = velas[i];
+            const isRosa = parseFloat(vela.numero) >= 10;
+            
+            if (isRosa) {
+              // Verifica até 2 casas antes
+              for (let j = 1; j <= 2; j++) {
+                if (i + j < velas.length) {
+                  const antecessor = velas[i + j];
+                  const antecessorNumero = parseFloat(antecessor.numero).toFixed(2);
+                  
+                  if (!antecessoresMap.has(antecessorNumero)) {
+                    antecessoresMap.set(antecessorNumero, { 
+                      acertos: 0, 
+                      positions: [],
+                      totalAparicoes: totalAparicoesMap.get(antecessorNumero) || 0
+                    });
+                  }
+                  
+                  const data = antecessoresMap.get(antecessorNumero);
+                  data.acertos++;
+                  data.positions.push(j);
+                }
+              }
+            }
+          }
+          
+          // Pega as duas velas mais recentes (posições 1 e 2)
+          const velasAtuais = new Set();
+          if (velas.length >= 1) velasAtuais.add(parseFloat(velas[0].numero).toFixed(2));
+          if (velas.length >= 2) velasAtuais.add(parseFloat(velas[1].numero).toFixed(2));
+          
+          // Filtra apenas antecessores com pelo menos 3 aparições totais
+          // E probabilidade mínima de 20% para garantir lucro saindo em 5x
+          const antecessoresRelevantes = Array.from(antecessoresMap.entries())
+            .filter(([numero, data]) => data.totalAparicoes >= 3)
+            .map(([numero, data]) => {
+              const erros = data.totalAparicoes - data.acertos;
+              const probabilidade = ((data.acertos / data.totalAparicoes) * 100).toFixed(1);
+              const isAtual = velasAtuais.has(numero);
+              
+              return {
+                numero,
+                acertos: data.acertos,
+                erros,
+                totalAparicoes: data.totalAparicoes,
+                probabilidade,
+                positions: data.positions,
+                isAtual
+              };
+            })
+            .filter(data => parseFloat(data.probabilidade) >= 20) // Mínimo 20% para lucro
+            .sort((a, b) => parseFloat(b.probabilidade) - parseFloat(a.probabilidade))
+            .slice(0, 10); // Limita aos top 10
+          
+          return antecessoresRelevantes;
+        }
+        
+        function renderAnalisesAntecessores(antecessores) {
+          const antecessoresList = document.getElementById('antecessores-list');
+          
+          if (antecessores.length === 0) {
+            antecessoresList.innerHTML = '<span class="text-gray-500">Nenhum padrão lucrativo encontrado (mín. 3 aparições e 20% de acerto para lucro saindo em 5x)</span>';
+            return;
+          }
+          
+          antecessoresList.innerHTML = antecessores.map(data => {
+            const posicoes = {};
+            data.positions.forEach(pos => {
+              posicoes[pos] = (posicoes[pos] || 0) + 1;
+            });
+            
+            const detalhes = Object.entries(posicoes)
+              .map(([pos, count]) => `${count}x na ${pos}ª casa`)
+              .join(', ');
+            
+            // Define cor da probabilidade
+            let probColor = 'text-gray-400';
+            const prob = parseFloat(data.probabilidade);
+            if (prob >= 70) probColor = 'text-green-400';
+            else if (prob >= 50) probColor = 'text-yellow-400';
+            else if (prob >= 30) probColor = 'text-orange-400';
+            else probColor = 'text-red-400';
+            
+            // Badge de vela atual
+            const atualBadge = data.isAtual 
+              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded">ATUAL</span>' 
+              : '';
+            
+            return `
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30">
+                ${atualBadge}
+                <span class="font-bold text-pink-400">${data.numero}x</span>
+                <span class="text-gray-400">→</span>
+                <span class="${probColor} font-bold text-sm">${data.probabilidade}%</span>
+                <span class="text-gray-500 text-xs">|</span>
+                <span class="text-green-400 font-semibold text-xs">${data.acertos}✓</span>
+                <span class="text-red-400 font-semibold text-xs">${data.erros}✗</span>
+                <span class="text-gray-500 text-xs">(${detalhes})</span>
+              </span>
+            `;
+          }).join('');
+        }
+
         function renderVelas(velas) {
           loadingElement.classList.add('hidden');
           historicoContainer.innerHTML = "";
           
-          velas.forEach((vela) => {
+          // Analisa antecessores
+          const antecessores = analisarAntecessores(velas);
+          renderAnalisesAntecessores(antecessores);
+          
+          // Primeiro, calcular os intervalos percorrendo do mais antigo para o mais recente
+          const velasComIntervalo = [];
+          let intervalCount = 0;
+          let countingInterval = false;
+          
+          // Percorre do final para o início (mais antigo para mais recente)
+          for (let i = velas.length - 1; i >= 0; i--) {
+            const vela = velas[i];
+            const isRosa = parseFloat(vela.numero) >= 10;
+            
+            if (isRosa) {
+              countingInterval = true;
+              intervalCount = 0;
+              velasComIntervalo.unshift({ vela, intervalo: 0 });
+            } else if (countingInterval) {
+              intervalCount++;
+              velasComIntervalo.unshift({ vela, intervalo: intervalCount });
+            } else {
+              velasComIntervalo.unshift({ vela, intervalo: 0 });
+            }
+          }
+          
+          // Agora renderiza as velas com os intervalos corretos
+          velasComIntervalo.forEach(({ vela, intervalo }) => {
             const velaElement = document.createElement("div");
             const numero = parseFloat(vela.numero).toFixed(2);
             const horario = formatDate(vela.horario);
             const velaType = getVelaType(vela);
+            const isRosa = parseFloat(vela.numero) >= 10;
+            
+            const intervalBadge = showIntervals && !isRosa && intervalo > 0
+              ? `<div class="interval-badge">${intervalo}</div>`
+              : '';
             
             velaElement.innerHTML = `
+              ${intervalBadge}
               <div class="numero-vela">${numero}x</div>
               <div class="horario-vela">${horario}</div>
             `;
@@ -384,7 +664,109 @@
           fetchVelas();
         });
 
+        intervalToggle.addEventListener("click", () => {
+          showIntervals = !showIntervals;
+          intervalToggle.setAttribute("aria-checked", showIntervals);
+          
+          if (showIntervals) {
+            intervalToggle.classList.remove("bg-gray-600");
+            intervalToggle.classList.add("bg-indigo-600");
+            intervalToggle.querySelector("span").classList.remove("translate-x-1");
+            intervalToggle.querySelector("span").classList.add("translate-x-6");
+          } else {
+            intervalToggle.classList.remove("bg-indigo-600");
+            intervalToggle.classList.add("bg-gray-600");
+            intervalToggle.querySelector("span").classList.remove("translate-x-6");
+            intervalToggle.querySelector("span").classList.add("translate-x-1");
+          }
+          
+          fetchVelas();
+        });
+
         historicoContainer.addEventListener("click", handleVelaClick);
+
+        // Modal functionality
+        const confirmModal = document.getElementById("confirm-modal");
+        const clearHistoryBtn = document.getElementById("clear-history-btn");
+        const modalCancelBtn = document.getElementById("modal-cancel-btn");
+        const modalConfirmBtn = document.getElementById("modal-confirm-btn");
+        const modalCasaName = document.getElementById("modal-casa-name");
+
+        // Get casa display name
+        function getCasaDisplayName(casaValue) {
+          const option = casaSelector.querySelector(`option[value="${casaValue}"]`);
+          return option ? option.textContent : casaValue;
+        }
+
+        // Open modal
+        clearHistoryBtn.addEventListener("click", () => {
+          const casaName = getCasaDisplayName(casaSelector.value);
+          modalCasaName.textContent = casaName;
+          confirmModal.classList.add("active");
+        });
+
+        // Close modal on cancel
+        modalCancelBtn.addEventListener("click", () => {
+          confirmModal.classList.remove("active");
+        });
+
+        // Close modal on overlay click
+        confirmModal.addEventListener("click", (e) => {
+          if (e.target === confirmModal) {
+            confirmModal.classList.remove("active");
+          }
+        });
+
+        // Delete history on confirm
+        modalConfirmBtn.addEventListener("click", async () => {
+          const casa = casaSelector.value;
+          
+          // Disable button and show loading state
+          modalConfirmBtn.disabled = true;
+          modalConfirmBtn.innerHTML = '<span class="inline-block animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></span><span>Excluindo...</span>';
+          
+          try {
+            const { error } = await supabaseClient
+              .from("velas")
+              .delete()
+              .eq("casa", casa);
+
+            if (error) {
+              console.error("❌ Error deleting history:", error);
+              alert("Erro ao excluir histórico: " + error.message);
+            } else {
+              console.log("✅ History deleted successfully for casa:", casa);
+              
+              // Close modal
+              confirmModal.classList.remove("active");
+              
+              // Clear the display
+              historicoContainer.innerHTML = "";
+              
+              // Show success message
+              const successMsg = document.createElement("div");
+              successMsg.className = "glass-effect rounded-xl p-6 text-center";
+              successMsg.innerHTML = `
+                <div class="text-5xl mb-4">✅</div>
+                <p class="text-white font-semibold text-lg mb-2">Histórico excluído com sucesso!</p>
+                <p class="text-gray-400 text-sm">Casa: ${getCasaDisplayName(casa)}</p>
+              `;
+              historicoContainer.appendChild(successMsg);
+              
+              // Refresh after 2 seconds
+              setTimeout(() => {
+                fetchVelas();
+              }, 2000);
+            }
+          } catch (e) {
+            console.error("❌ Exception deleting history:", e);
+            alert("Erro ao excluir histórico: " + e.message);
+          } finally {
+            // Re-enable button
+            modalConfirmBtn.disabled = false;
+            modalConfirmBtn.innerHTML = '<span>🗑️</span><span>Confirmar Exclusão</span>';
+          }
+        });
 
         // Fetch inicial
         loadingElement.classList.remove('hidden');
