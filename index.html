@@ -152,6 +152,11 @@
         z-index: 20;
       }
       
+      .interval-badge.before-rosa {
+        border: 2px solid #ec4899;
+        box-shadow: 0 0 12px rgba(236, 72, 153, 0.8);
+      }
+      
       @media (max-width: 640px) {
         .numero-vela {
           font-size: 0.85rem;
@@ -563,15 +568,19 @@
           }
           
           // Agora renderiza as velas com os intervalos corretos
-          velasComIntervalo.forEach(({ vela, intervalo }) => {
+          velasComIntervalo.forEach(({ vela, intervalo }, index) => {
             const velaElement = document.createElement("div");
             const numero = parseFloat(vela.numero).toFixed(2);
             const horario = formatDate(vela.horario);
             const velaType = getVelaType(vela);
             const isRosa = parseFloat(vela.numero) >= 10;
             
+            // Verifica se a próxima vela é rosa (última antes da rosa)
+            const isBeforeRosa = index > 0 && parseFloat(velasComIntervalo[index - 1].vela.numero) >= 10;
+            const badgeClass = isBeforeRosa ? 'interval-badge before-rosa' : 'interval-badge';
+            
             const intervalBadge = showIntervals && !isRosa && intervalo > 0
-              ? `<div class="interval-badge">${intervalo}</div>`
+              ? `<div class="${badgeClass}">${intervalo}</div>`
               : '';
             
             velaElement.innerHTML = `
