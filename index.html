@@ -385,7 +385,7 @@
             .select("*")
             .eq("casa", casa)
             .order("horario", { ascending: false })
-            .limit(500);
+            .limit(5000);
 
           if (error) {
             console.error("❌ Error fetching velas:", error);
