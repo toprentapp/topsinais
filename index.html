@@ -296,6 +296,16 @@
         </div>
       </div>
 
+      <!-- Antecessores Recentes -->
+      <div id="antecessores-recentes" class="glass-effect rounded-xl p-3 mb-6">
+        <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
+          <span class="font-semibold text-gray-300">🔥 Últimos 5 Antecessores:</span>
+          <div id="antecessores-recentes-list" class="flex gap-2 flex-wrap">
+            <span class="text-gray-500">Carregando...</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Grid de Velas -->
       <div id="historico-container" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-2 sm:gap-2.5">
         <!-- As velas serão inseridas aqui -->
@@ -423,56 +433,55 @@
           return velaType === selectedColorFilter;
         }
 
-function analisarAntecessores(velas) {
+        function analisarAntecessores(velas) {
           const antecessoresMap = new Map();
           const totalAparicoesMap = new Map();
           
-          // Primeiro, conta todas as aparições de cada número
+          // Verifica se as primeiras 20 velas (mais recentes) não têm nenhuma rosa
+          let temRosaNas20Primeiras = false;
+          for (let i = 0; i < Math.min(20, velas.length); i++) {
+            const isRosa = parseFloat(velas[i].numero) >= 10;
+            if (isRosa) {
+              temRosaNas20Primeiras = true;
+              break;
+            }
+          }
+          
+          // Se não há rosa nas últimas 20 velas E temos pelo menos 20 velas, ignora os padrões anteriores
+          if (!temRosaNas20Primeiras && velas.length >= 20) {
+            return [];
+          }
+          
+          // Conta todas as aparições de cada número
           velas.forEach(vela => {
             const numero = parseFloat(vela.numero).toFixed(2);
             totalAparicoesMap.set(numero, (totalAparicoesMap.get(numero) || 0) + 1);
           });
           
-          let contadorNaoRosa = 0;
-          let ultimaRosaIndex = -1;
-          
-          // Percorre as velas para encontrar rosas e seus antecessores
+          // Percorre todas as velas para encontrar rosas e seus antecessores
           for (let i = 0; i < velas.length; i++) {
             const vela = velas[i];
             const isRosa = parseFloat(vela.numero) >= 10;
             
             if (isRosa) {
-              contadorNaoRosa = 0; // Reseta o contador quando encontra uma rosa
-              ultimaRosaIndex = i;
-              
               // Verifica até 2 casas antes
               for (let j = 1; j <= 2; j++) {
                 if (i + j < velas.length) {
                   const antecessor = velas[i + j];
                   const antecessorNumero = parseFloat(antecessor.numero).toFixed(2);
                   
-                  // Só mapeia se não passou de 20 velas sem rosa
-                  if (contadorNaoRosa < 20) {
-                    if (!antecessoresMap.has(antecessorNumero)) {
-                      antecessoresMap.set(antecessorNumero, { 
-                        acertos: 0, 
-                        positions: [],
-                        totalAparicoes: totalAparicoesMap.get(antecessorNumero) || 0
-                      });
-                    }
-                    
-                    const data = antecessoresMap.get(antecessorNumero);
-                    data.acertos++;
-                    data.positions.push(j);
+                  if (!antecessoresMap.has(antecessorNumero)) {
+                    antecessoresMap.set(antecessorNumero, { 
+                      acertos: 0, 
+                      positions: [],
+                      totalAparicoes: totalAparicoesMap.get(antecessorNumero) || 0
+                    });
                   }
+                  
+                  const data = antecessoresMap.get(antecessorNumero);
+                  data.acertos++;
+                  data.positions.push(j);
                 }
-              }
-            } else {
-              contadorNaoRosa++; // Incrementa o contador para velas não rosa
-              
-              // Se passar de 20 velas sem rosa, limpa o mapa de antecessores
-              if (contadorNaoRosa >= 20) {
-                antecessoresMap.clear();
               }
             }
           }
@@ -554,6 +563,69 @@ function analisarAntecessores(velas) {
           }).join('');
         }
 
+        function extrairAntecessoresRecentes(velas) {
+          const antecessoresRecentes = [];
+          
+          // Percorre as velas mais recentes para encontrar as últimas 5 rosas
+          for (let i = 0; i < velas.length && antecessoresRecentes.length < 5; i++) {
+            const vela = velas[i];
+            const isRosa = parseFloat(vela.numero) >= 10;
+            
+            if (isRosa) {
+              // Pega os antecessores (1ª e 2ª casa antes da rosa)
+              const antecessoresDaRosa = [];
+              
+              if (i + 1 < velas.length) {
+                antecessoresDaRosa.push({
+                  numero: parseFloat(velas[i + 1].numero).toFixed(2),
+                  posicao: 1,
+                  horario: velas[i + 1].horario
+                });
+              }
+              
+              if (i + 2 < velas.length) {
+                antecessoresDaRosa.push({
+                  numero: parseFloat(velas[i + 2].numero).toFixed(2),
+                  posicao: 2,
+                  horario: velas[i + 2].horario
+                });
+              }
+              
+              antecessoresRecentes.push({
+                rosa: parseFloat(vela.numero).toFixed(2),
+                horarioRosa: vela.horario,
+                antecessores: antecessoresDaRosa
+              });
+            }
+          }
+          
+          return antecessoresRecentes;
+        }
+
+        function renderAntecessoresRecentes(antecessoresRecentes) {
+          const antecessoresRecentesList = document.getElementById('antecessores-recentes-list');
+          
+          if (antecessoresRecentes.length === 0) {
+            antecessoresRecentesList.innerHTML = '<span class="text-gray-500">Nenhuma rosa encontrada recentemente</span>';
+            return;
+          }
+          
+          antecessoresRecentesList.innerHTML = antecessoresRecentes.map((item, index) => {
+            const antecessoresTexto = item.antecessores
+              .map(ant => `<span class="font-bold text-cyan-400">${ant.numero}x</span>`)
+              .join(' + ');
+            
+            return `
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
+                <span class="text-[10px] font-bold text-gray-400">#${index + 1}</span>
+                ${antecessoresTexto}
+                <span class="text-gray-400">→</span>
+                <span class="font-bold text-pink-400">${item.rosa}x</span>
+              </span>
+            `;
+          }).join('');
+        }
+
         function renderVelas(velas) {
           loadingElement.classList.add('hidden');
           historicoContainer.innerHTML = "";
@@ -561,6 +633,10 @@ function analisarAntecessores(velas) {
           // Analisa antecessores
           const antecessores = analisarAntecessores(velas);
           renderAnalisesAntecessores(antecessores);
+          
+          // Extrai e renderiza antecessores recentes
+          const antecessoresRecentes = extrairAntecessoresRecentes(velas);
+          renderAntecessoresRecentes(antecessoresRecentes);
           
           // Primeiro, calcular os intervalos percorrendo do mais antigo para o mais recente
           const velasComIntervalo = [];
