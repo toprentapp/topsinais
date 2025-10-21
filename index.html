@@ -610,15 +610,39 @@
             return;
           }
           
+          // Pega as duas velas mais recentes para verificar se são atuais
+          const velasAtuais = new Set();
+          if (window.velasGlobais && window.velasGlobais.length >= 1) {
+            velasAtuais.add(parseFloat(window.velasGlobais[0].numero).toFixed(2));
+          }
+          if (window.velasGlobais && window.velasGlobais.length >= 2) {
+            velasAtuais.add(parseFloat(window.velasGlobais[1].numero).toFixed(2));
+          }
+          
           antecessoresRecentesList.innerHTML = antecessoresRecentes.map((item, index) => {
             // Pega apenas o primeiro antecessor (1ª casa)
             const primeiroAntecessor = item.antecessores.length > 0 ? item.antecessores[0].numero : '';
             
             if (!primeiroAntecessor) return '';
             
+            // Verifica se é uma vela atual
+            const isAtual = velasAtuais.has(primeiroAntecessor);
+            
+            // Define estilo baseado se é atual ou não
+            const bgClass = isAtual 
+              ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30' 
+              : 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-cyan-500/30';
+            
+            const textClass = isAtual ? 'text-pink-400' : 'text-cyan-400';
+            
+            const atualBadge = isAtual 
+              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded">ATUAL</span>' 
+              : '';
+            
             return `
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
-                <span class="font-bold text-cyan-400">${primeiroAntecessor}x</span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border">
+                ${atualBadge}
+                <span class="font-bold ${textClass}">${primeiroAntecessor}x</span>
               </span>
             `;
           }).filter(html => html !== '').join('');
@@ -627,6 +651,9 @@
         function renderVelas(velas) {
           loadingElement.classList.add('hidden');
           historicoContainer.innerHTML = "";
+          
+          // Armazena velas globalmente para uso em outras funções
+          window.velasGlobais = velas;
           
           // Analisa antecessores
           const antecessores = analisarAntecessores(velas);
