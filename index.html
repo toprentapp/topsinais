@@ -423,7 +423,7 @@
           return velaType === selectedColorFilter;
         }
 
-        function analisarAntecessores(velas) {
+function analisarAntecessores(velas) {
           const antecessoresMap = new Map();
           const totalAparicoesMap = new Map();
           
@@ -433,30 +433,46 @@
             totalAparicoesMap.set(numero, (totalAparicoesMap.get(numero) || 0) + 1);
           });
           
+          let contadorNaoRosa = 0;
+          let ultimaRosaIndex = -1;
+          
           // Percorre as velas para encontrar rosas e seus antecessores
           for (let i = 0; i < velas.length; i++) {
             const vela = velas[i];
             const isRosa = parseFloat(vela.numero) >= 10;
             
             if (isRosa) {
+              contadorNaoRosa = 0; // Reseta o contador quando encontra uma rosa
+              ultimaRosaIndex = i;
+              
               // Verifica até 2 casas antes
               for (let j = 1; j <= 2; j++) {
                 if (i + j < velas.length) {
                   const antecessor = velas[i + j];
                   const antecessorNumero = parseFloat(antecessor.numero).toFixed(2);
                   
-                  if (!antecessoresMap.has(antecessorNumero)) {
-                    antecessoresMap.set(antecessorNumero, { 
-                      acertos: 0, 
-                      positions: [],
-                      totalAparicoes: totalAparicoesMap.get(antecessorNumero) || 0
-                    });
+                  // Só mapeia se não passou de 20 velas sem rosa
+                  if (contadorNaoRosa < 20) {
+                    if (!antecessoresMap.has(antecessorNumero)) {
+                      antecessoresMap.set(antecessorNumero, { 
+                        acertos: 0, 
+                        positions: [],
+                        totalAparicoes: totalAparicoesMap.get(antecessorNumero) || 0
+                      });
+                    }
+                    
+                    const data = antecessoresMap.get(antecessorNumero);
+                    data.acertos++;
+                    data.positions.push(j);
                   }
-                  
-                  const data = antecessoresMap.get(antecessorNumero);
-                  data.acertos++;
-                  data.positions.push(j);
                 }
+              }
+            } else {
+              contadorNaoRosa++; // Incrementa o contador para velas não rosa
+              
+              // Se passar de 20 velas sem rosa, limpa o mapa de antecessores
+              if (contadorNaoRosa >= 20) {
+                antecessoresMap.clear();
               }
             }
           }
