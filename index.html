@@ -611,19 +611,17 @@
           }
           
           antecessoresRecentesList.innerHTML = antecessoresRecentes.map((item, index) => {
-            const antecessoresTexto = item.antecessores
-              .map(ant => `<span class="font-bold text-cyan-400">${ant.numero}x</span>`)
-              .join(' + ');
+            // Pega apenas o primeiro antecessor (1ª casa)
+            const primeiroAntecessor = item.antecessores.length > 0 ? item.antecessores[0].numero : '';
+            
+            if (!primeiroAntecessor) return '';
             
             return `
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
-                <span class="text-[10px] font-bold text-gray-400">#${index + 1}</span>
-                ${antecessoresTexto}
-                <span class="text-gray-400">→</span>
-                <span class="font-bold text-pink-400">${item.rosa}x</span>
+                <span class="font-bold text-cyan-400">${primeiroAntecessor}x</span>
               </span>
             `;
-          }).join('');
+          }).filter(html => html !== '').join('');
         }
 
         function renderVelas(velas) {
