@@ -299,7 +299,7 @@
       <!-- Antecessores Recentes -->
       <div id="antecessores-recentes" class="glass-effect rounded-xl p-3 mb-6">
         <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
-          <span class="font-semibold text-gray-300">🔥 Últimos 5 Antecessores:</span>
+          <span class="font-semibold text-gray-300">🔥 Últimos 7 Antecessores:</span>
           <div id="antecessores-recentes-list" class="flex gap-2 flex-wrap">
             <span class="text-gray-500">Carregando...</span>
           </div>
@@ -437,9 +437,9 @@
           const antecessoresMap = new Map();
           const totalAparicoesMap = new Map();
           
-          // Verifica se as primeiras 20 velas (mais recentes) não têm nenhuma rosa
+          // Verifica se as primeiras 50 velas (mais recentes) não têm nenhuma rosa
           let temRosaNas20Primeiras = false;
-          for (let i = 0; i < Math.min(20, velas.length); i++) {
+          for (let i = 0; i < Math.min(50, velas.length); i++) {
             const isRosa = parseFloat(velas[i].numero) >= 10;
             if (isRosa) {
               temRosaNas20Primeiras = true;
@@ -447,8 +447,8 @@
             }
           }
           
-          // Se não há rosa nas últimas 20 velas E temos pelo menos 20 velas, ignora os padrões anteriores
-          if (!temRosaNas20Primeiras && velas.length >= 20) {
+          // Se não há rosa nas últimas 50 velas E temos pelo menos 50 velas, ignora os padrões anteriores
+          if (!temRosaNas20Primeiras && velas.length >= 50) {
             return [];
           }
           
@@ -641,8 +641,8 @@
               }
             }
             
-            // Para quando tiver 5 antecessores azuis
-            if (antecessoresAzuis.length >= 5) break;
+            // Para quando tiver 7 antecessores azuis
+            if (antecessoresAzuis.length >= 7) break;
           }
           
           if (antecessoresAzuis.length === 0) {
