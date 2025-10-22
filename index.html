@@ -619,33 +619,56 @@
             velasAtuais.add(parseFloat(window.velasGlobais[1].numero).toFixed(2));
           }
           
-          antecessoresRecentesList.innerHTML = antecessoresRecentes.map((item, index) => {
-            // Pega apenas o primeiro antecessor (1ª casa)
-            const primeiroAntecessor = item.antecessores.length > 0 ? item.antecessores[0].numero : '';
+          // Filtra apenas antecessores azuis
+          const antecessoresAzuis = [];
+          
+          for (const item of antecessoresRecentes) {
+            if (item.antecessores.length > 0) {
+              const primeiroAntecessor = item.antecessores[0];
+              
+              // Busca a vela original para verificar a cor
+              const velaOriginal = window.velasGlobais.find(v => 
+                parseFloat(v.numero).toFixed(2) === primeiroAntecessor.numero &&
+                v.horario === primeiroAntecessor.horario
+              );
+              
+              // Verifica se é azul
+              if (velaOriginal && velaOriginal.cor === 'azul') {
+                antecessoresAzuis.push({
+                  numero: primeiroAntecessor.numero,
+                  isAtual: velasAtuais.has(primeiroAntecessor.numero)
+                });
+              }
+            }
             
-            if (!primeiroAntecessor) return '';
-            
-            // Verifica se é uma vela atual
-            const isAtual = velasAtuais.has(primeiroAntecessor);
-            
+            // Para quando tiver 5 antecessores azuis
+            if (antecessoresAzuis.length >= 5) break;
+          }
+          
+          if (antecessoresAzuis.length === 0) {
+            antecessoresRecentesList.innerHTML = '<span class="text-gray-500">Nenhum antecessor azul encontrado</span>';
+            return;
+          }
+          
+          antecessoresRecentesList.innerHTML = antecessoresAzuis.map(item => {
             // Define estilo baseado se é atual ou não
-            const bgClass = isAtual 
+            const bgClass = item.isAtual 
               ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30' 
-              : 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-cyan-500/30';
+              : 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-blue-500/30';
             
-            const textClass = isAtual ? 'text-pink-400' : 'text-cyan-400';
+            const textClass = item.isAtual ? 'text-pink-400' : 'text-blue-400';
             
-            const atualBadge = isAtual 
+            const atualBadge = item.isAtual 
               ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded">ATUAL</span>' 
               : '';
             
             return `
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border">
                 ${atualBadge}
-                <span class="font-bold ${textClass}">${primeiroAntecessor}x</span>
+                <span class="font-bold ${textClass}">💙 ${item.numero}x</span>
               </span>
             `;
-          }).filter(html => html !== '').join('');
+          }).join('');
         }
 
         function renderVelas(velas) {
