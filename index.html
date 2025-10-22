@@ -299,7 +299,7 @@
       <!-- Antecessores Recentes -->
       <div id="antecessores-recentes" class="glass-effect rounded-xl p-3 mb-6">
         <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
-          <span class="font-semibold text-gray-300">🔥 Últimos 7 Antecessores:</span>
+          <span class="font-semibold text-gray-300">🔥 Últimos 10 Antecessores:</span>
           <div id="antecessores-recentes-list" class="flex gap-2 flex-wrap">
             <span class="text-gray-500">Carregando...</span>
           </div>
@@ -641,8 +641,8 @@
               }
             }
             
-            // Para quando tiver 7 antecessores azuis
-            if (antecessoresAzuis.length >= 7) break;
+            // Para quando tiver 10 antecessores azuis
+            if (antecessoresAzuis.length >= 10) break;
           }
           
           if (antecessoresAzuis.length === 0) {
