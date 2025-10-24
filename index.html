@@ -437,9 +437,9 @@
           const antecessoresMap = new Map();
           const totalAparicoesMap = new Map();
           
-          // Verifica se as primeiras 50 velas (mais recentes) não têm nenhuma rosa
+          // Verifica se as primeiras 100 velas (mais recentes) não têm nenhuma rosa
           let temRosaNas20Primeiras = false;
-          for (let i = 0; i < Math.min(50, velas.length); i++) {
+          for (let i = 0; i < Math.min(100, velas.length); i++) {
             const isRosa = parseFloat(velas[i].numero) >= 10;
             if (isRosa) {
               temRosaNas20Primeiras = true;
@@ -447,8 +447,8 @@
             }
           }
           
-          // Se não há rosa nas últimas 50 velas E temos pelo menos 50 velas, ignora os padrões anteriores
-          if (!temRosaNas20Primeiras && velas.length >= 50) {
+          // Se não há rosa nas últimas 100 velas E temos pelo menos 100 velas, ignora os padrões anteriores
+          if (!temRosaNas20Primeiras && velas.length >= 100) {
             return [];
           }
           
@@ -566,8 +566,8 @@
         function extrairAntecessoresRecentes(velas) {
           const antecessoresRecentes = [];
           
-          // Percorre as velas mais recentes para encontrar as últimas 5 rosas
-          for (let i = 0; i < velas.length && antecessoresRecentes.length < 5; i++) {
+          // Percorre as velas mais recentes para encontrar as últimas 10 rosas
+          for (let i = 0; i < velas.length && antecessoresRecentes.length < 10; i++) {
             const vela = velas[i];
             const isRosa = parseFloat(vela.numero) >= 10;
             
