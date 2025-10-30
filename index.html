@@ -437,10 +437,10 @@
           const antecessoresMap = new Map();
           const totalAparicoesMap = new Map();
           
-          // Verifica se as primeiras 100 velas (mais recentes) não têm nenhuma rosa
+          // Verifica se as primeiras 100 velas (mais recentes) não têm nenhuma rosa (>= 6x)
           let temRosaNas20Primeiras = false;
           for (let i = 0; i < Math.min(100, velas.length); i++) {
-            const isRosa = parseFloat(velas[i].numero) >= 10;
+            const isRosa = parseFloat(velas[i].numero) >= 6;
             if (isRosa) {
               temRosaNas20Primeiras = true;
               break;
@@ -458,10 +458,10 @@
             totalAparicoesMap.set(numero, (totalAparicoesMap.get(numero) || 0) + 1);
           });
           
-          // Percorre todas as velas para encontrar rosas e seus antecessores
+          // Percorre todas as velas para encontrar rosas (>= 6x) e seus antecessores
           for (let i = 0; i < velas.length; i++) {
             const vela = velas[i];
-            const isRosa = parseFloat(vela.numero) >= 10;
+            const isRosa = parseFloat(vela.numero) >= 6;
             
             if (isRosa) {
               // Verifica até 2 casas antes
@@ -566,10 +566,10 @@
         function extrairAntecessoresRecentes(velas) {
           const antecessoresRecentes = [];
           
-          // Percorre as velas mais recentes para encontrar as últimas 10 rosas
+          // Percorre as velas mais recentes para encontrar as últimas 10 rosas (>= 6x)
           for (let i = 0; i < velas.length && antecessoresRecentes.length < 10; i++) {
             const vela = velas[i];
-            const isRosa = parseFloat(vela.numero) >= 10;
+            const isRosa = parseFloat(vela.numero) >= 6;
             
             if (isRosa) {
               // Pega os antecessores (1ª e 2ª casa antes da rosa)
@@ -694,7 +694,7 @@
           // Percorre do final para o início (mais antigo para mais recente)
           for (let i = velas.length - 1; i >= 0; i--) {
             const vela = velas[i];
-            const isRosa = parseFloat(vela.numero) >= 10;
+            const isRosa = parseFloat(vela.numero) >= 6;
             
             if (isRosa) {
               countingInterval = true;
@@ -714,10 +714,10 @@
             const numero = parseFloat(vela.numero).toFixed(2);
             const horario = formatDate(vela.horario);
             const velaType = getVelaType(vela);
-            const isRosa = parseFloat(vela.numero) >= 10;
+            const isRosa = parseFloat(vela.numero) >= 6;
             
-            // Verifica se a próxima vela é rosa (última antes da rosa)
-            const isBeforeRosa = index > 0 && parseFloat(velasComIntervalo[index - 1].vela.numero) >= 10;
+            // Verifica se a próxima vela é rosa (>= 6x) (última antes da rosa)
+            const isBeforeRosa = index > 0 && parseFloat(velasComIntervalo[index - 1].vela.numero) >= 6;
             const badgeClass = isBeforeRosa ? 'interval-badge before-rosa' : 'interval-badge';
             
             const intervalBadge = showIntervals && !isRosa && intervalo > 0
@@ -755,7 +755,7 @@
               if (velaDiv.dataset.numero === selectedNumber && index > 0) {
                 const nextVela = allVelas[index - 1];
                 const nextNumero = parseFloat(nextVela.dataset.numero);
-                if (nextNumero >= 10) {
+                if (nextNumero >= 6) {
                   nextVela.classList.remove("dimmed");
                   nextVela.classList.add("next-rosa");
                 }
@@ -784,11 +784,11 @@
                 if (velaDiv.dataset.numero === selectedNumber) {
                   velaDiv.classList.add("highlight");
                   
-                  // Verifica se a próxima vela é rosa (>= 10)
+                  // Verifica se a próxima vela é rosa (>= 6x)
                   if (index > 0) {
                     const nextVela = allVelas[index - 1];
                     const nextNumero = parseFloat(nextVela.dataset.numero);
-                    if (nextNumero >= 10) {
+                    if (nextNumero >= 6) {
                       nextVela.classList.remove("dimmed");
                       nextVela.classList.add("next-rosa");
                     }
