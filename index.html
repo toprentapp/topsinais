@@ -91,6 +91,12 @@
         color: white;
       }
       
+      .vela-gatilho-atual {
+        background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%) !important;
+        animation: pulse-orange 2s infinite;
+        border: 2px solid #ff8c00 !important;
+      }
+      
       .numero-vela {
         font-size: 1rem;
         font-weight: 800;
@@ -386,8 +392,8 @@
         function detectarPadroes(velas) {
           const novosPadroes = [];
           
-          // Percorre as velas para encontrar padrões
-          for (let i = 0; i < velas.length; i++) {
+          // Percorre as velas DA MAIS ANTIGA PARA A MAIS RECENTE
+          for (let i = velas.length - 1; i >= 0; i--) {
             const velaGatilho = velas[i];
             const numeroGatilho = parseFloat(velaGatilho.numero);
             
@@ -404,13 +410,19 @@
                 // Verifica APENAS se a 2ª antecessora é < 2x (gatilho)
                 // A 1ª antecessora pode ter qualquer valor
                 if (numAnt2 < 2) {
-                  // Cria ID único para o padrão
+                  // Cria ID único para o padrão baseado no gatilho (2ª antecessora)
                   const padraoId = `${velaGatilho.horario}-${numeroGatilho.toFixed(2)}`;
                   
                   // Verifica se já existe
                   const jaExiste = padroesDetectados.some(p => p.id === padraoId);
                   
                   if (!jaExiste) {
+                    // Verifica se é a primeira ou segunda ocorrência deste gatilho
+                    const gatilhoNumero = numAnt2.toFixed(2);
+                    const ocorrenciasAnteriores = padroesDetectados.filter(p => 
+                      p.antecessor2.numero === gatilhoNumero
+                    ).length;
+                    
                     const padrao = {
                       id: padraoId,
                       velaGatilho: {
@@ -427,7 +439,8 @@
                       },
                       wins: 0,
                       losses: 0,
-                      timestamp: Date.now()
+                      timestamp: Date.now(),
+                      isPrimeiraOcorrencia: ocorrenciasAnteriores === 0
                     };
                     
                     novosPadroes.push(padrao);
@@ -437,9 +450,9 @@
             }
           }
           
-          // Adiciona novos padrões aos existentes
+          // Adiciona novos padrões aos existentes (invertendo para manter ordem cronológica)
           if (novosPadroes.length > 0) {
-            padroesDetectados = [...novosPadroes, ...padroesDetectados];
+            padroesDetectados = [...novosPadroes.reverse(), ...padroesDetectados];
             // Limita a 50 padrões mais recentes
             padroesDetectados = padroesDetectados.slice(0, 50);
             salvarPadroesNoStorage(padroesDetectados);
@@ -455,6 +468,12 @@
           padroesDetectados.forEach(padrao => {
             // Se já tem resultado, pula
             if (padrao.resultado) return;
+            
+            // Se é a primeira ocorrência, não marca Win/Loss ainda
+            if (padrao.isPrimeiraOcorrencia) {
+              // Apenas marca como "mapeado" mas não calcula resultado
+              return;
+            }
             
             // Procura o padrão nas velas
             for (let i = 0; i < velas.length; i++) {
@@ -501,7 +520,17 @@
           // Pega a vela atual (mais recente)
           const velaAtual = velas.length > 0 ? parseFloat(velas[0].numero).toFixed(2) : null;
           
-          padroesList.innerHTML = padroesDetectados.map(padrao => {
+          // Ordena padrões: vela atual primeiro, depois os demais por timestamp
+          const padroesOrdenados = [...padroesDetectados].sort((a, b) => {
+            const aIsAtual = velaAtual === a.antecessor2.numero;
+            const bIsAtual = velaAtual === b.antecessor2.numero;
+            
+            if (aIsAtual && !bIsAtual) return -1;
+            if (!aIsAtual && bIsAtual) return 1;
+            return b.timestamp - a.timestamp;
+          });
+          
+          padroesList.innerHTML = padroesOrdenados.map(padrao => {
             const isGatilhoAtual = velaAtual === padrao.antecessor2.numero;
             const cardClass = isGatilhoAtual ? 'gatilho-atual' : '';
             
@@ -510,6 +539,13 @@
               statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-green-500 text-white rounded">✓ WIN</span>';
             } else if (padrao.resultado === 'loss') {
               statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-red-500 text-white rounded">✗ LOSS</span>';
+            } else if (padrao.isPrimeiraOcorrencia) {
+              // Primeira ocorrência - apenas mapeado
+              if (isGatilhoAtual) {
+                statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-orange-500 text-black rounded animate-pulse">🔥 VELA ATUAL</span>';
+              } else {
+                statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-blue-600 text-white rounded">📍 MAPEADO</span>';
+              }
             } else if (isGatilhoAtual) {
               statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-orange-500 text-black rounded animate-pulse">🔥 VELA ATUAL</span>';
             } else {
@@ -966,6 +1002,17 @@
             }
           }
           
+          // Pega vela atual para marcar gatilhos em laranja
+          const velaAtual = velas.length > 0 ? parseFloat(velas[0].numero).toFixed(2) : null;
+          
+          // Verifica quais velas são gatilhos atuais
+          const gatilhosAtuais = new Set();
+          padroesDetectados.forEach(padrao => {
+            if (velaAtual === padrao.antecessor2.numero) {
+              gatilhosAtuais.add(padrao.antecessor2.numero);
+            }
+          });
+          
           // Agora renderiza as velas com os intervalos corretos
           velasComIntervalo.forEach(({ vela, intervalo }, index) => {
             const velaElement = document.createElement("div");
@@ -973,6 +1020,9 @@
             const horario = formatDate(vela.horario);
             const velaType = getVelaType(vela);
             const isRosa = parseFloat(vela.numero) >= 10;
+            
+            // Verifica se é um gatilho atual
+            const isGatilhoAtual = gatilhosAtuais.has(numero);
             
             // Verifica se a próxima vela é rosa (última antes da rosa)
             const isBeforeRosa = index > 0 && parseFloat(velasComIntervalo[index - 1].vela.numero) >= 10;
@@ -991,6 +1041,11 @@
             velaElement.dataset.numero = numero;
             velaElement.dataset.type = velaType;
             velaElement.className = `vela-card p-2 sm:p-2.5 rounded-xl text-center cursor-pointer ${getVelaClass(vela)}`;
+            
+            // Aplica marcação laranja se for gatilho atual
+            if (isGatilhoAtual) {
+              velaElement.classList.add('vela-gatilho-atual');
+            }
 
             // Aplica filtro de cor
             if (!shouldShowVela(velaType)) {
