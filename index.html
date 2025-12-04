@@ -164,6 +164,51 @@
           font-size: 7.7px;
         }
       }
+      
+      /* Estilos para painel de padrões */
+      .padroes-panel {
+        position: fixed;
+        right: 20px;
+        top: 20px;
+        width: 400px;
+        max-height: 80vh;
+        overflow-y: auto;
+        z-index: 1000;
+      }
+      
+      .padrao-card {
+        transition: all 0.3s ease;
+      }
+      
+      .padrao-card:hover {
+        transform: translateX(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+      }
+      
+      .gatilho-atual {
+        background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%) !important;
+        animation: pulse-orange 2s infinite;
+      }
+      
+      @keyframes pulse-orange {
+        0%, 100% {
+          box-shadow: 0 0 20px rgba(255, 140, 0, 0.5);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(255, 140, 0, 0.8);
+        }
+      }
+      
+      @media (max-width: 1024px) {
+        .padroes-panel {
+          position: relative;
+          right: auto;
+          top: auto;
+          width: 100%;
+          max-height: none;
+          margin-bottom: 20px;
+        }
+      }
     </style>
   </head>
   <body class="p-4 sm:p-6 lg:p-8">
@@ -276,6 +321,17 @@
         </div>
       </div>
 
+      <!-- Painel de Padrões Mapeados -->
+      <div id="padroes-panel" class="padroes-panel glass-effect rounded-2xl p-4 hidden lg:block">
+        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <span>🎯</span>
+          <span>Padrões Mapeados</span>
+        </h3>
+        <div id="padroes-list" class="space-y-3">
+          <p class="text-gray-400 text-sm">Nenhum padrão detectado ainda...</p>
+        </div>
+      </div>
+
       <!-- Grid de Velas -->
       <div id="historico-container" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-2 sm:gap-2.5">
         <!-- As velas serão inseridas aqui -->
@@ -297,9 +353,211 @@
         const intervalToggle = document.getElementById("interval-toggle");
         const historicoContainer = document.getElementById("historico-container");
         const loadingElement = document.getElementById("loading");
+        const padroesPanel = document.getElementById("padroes-panel");
+        const padroesList = document.getElementById("padroes-list");
         let selectedNumber = null;
         let selectedColorFilter = "all";
         let showIntervals = false;
+        let padroesDetectados = [];
+
+        // Funções de LocalStorage
+        function salvarPadroesNoStorage(padroes) {
+          try {
+            localStorage.setItem('padroesDetectados', JSON.stringify(padroes));
+          } catch (error) {
+            console.error('Erro ao salvar padrões no localStorage:', error);
+          }
+        }
+
+        function carregarPadroesDoStorage() {
+          try {
+            const padroes = localStorage.getItem('padroesDetectados');
+            return padroes ? JSON.parse(padroes) : [];
+          } catch (error) {
+            console.error('Erro ao carregar padrões do localStorage:', error);
+            return [];
+          }
+        }
+
+        // Carregar padrões salvos ao iniciar
+        padroesDetectados = carregarPadroesDoStorage();
+
+        // Função para detectar padrões (vela >= 5x com 2 antecessores < 2x)
+        function detectarPadroes(velas) {
+          const novosPadroes = [];
+          
+          // Percorre as velas para encontrar padrões
+          for (let i = 0; i < velas.length; i++) {
+            const velaGatilho = velas[i];
+            const numeroGatilho = parseFloat(velaGatilho.numero);
+            
+            // Verifica se é uma vela >= 5x
+            if (numeroGatilho >= 5) {
+              // Verifica se temos pelo menos 2 velas anteriores
+              if (i + 2 < velas.length) {
+                const antecessor1 = velas[i + 1]; // 1ª antecessora (sem restrição)
+                const antecessor2 = velas[i + 2]; // 2ª antecessora (gatilho - deve ser < 2x)
+                
+                const numAnt1 = parseFloat(antecessor1.numero);
+                const numAnt2 = parseFloat(antecessor2.numero);
+                
+                // Verifica APENAS se a 2ª antecessora é < 2x (gatilho)
+                // A 1ª antecessora pode ter qualquer valor
+                if (numAnt2 < 2) {
+                  // Cria ID único para o padrão
+                  const padraoId = `${velaGatilho.horario}-${numeroGatilho.toFixed(2)}`;
+                  
+                  // Verifica se já existe
+                  const jaExiste = padroesDetectados.some(p => p.id === padraoId);
+                  
+                  if (!jaExiste) {
+                    const padrao = {
+                      id: padraoId,
+                      velaGatilho: {
+                        numero: numeroGatilho.toFixed(2),
+                        horario: velaGatilho.horario
+                      },
+                      antecessor1: {
+                        numero: numAnt1.toFixed(2),
+                        horario: antecessor1.horario
+                      },
+                      antecessor2: {
+                        numero: numAnt2.toFixed(2),
+                        horario: antecessor2.horario
+                      },
+                      wins: 0,
+                      losses: 0,
+                      timestamp: Date.now()
+                    };
+                    
+                    novosPadroes.push(padrao);
+                  }
+                }
+              }
+            }
+          }
+          
+          // Adiciona novos padrões aos existentes
+          if (novosPadroes.length > 0) {
+            padroesDetectados = [...novosPadroes, ...padroesDetectados];
+            // Limita a 50 padrões mais recentes
+            padroesDetectados = padroesDetectados.slice(0, 50);
+            salvarPadroesNoStorage(padroesDetectados);
+          }
+          
+          return padroesDetectados;
+        }
+
+        // Função para atualizar resultados dos padrões
+        function atualizarResultadosPadroes(velas) {
+          let atualizado = false;
+          
+          padroesDetectados.forEach(padrao => {
+            // Se já tem resultado, pula
+            if (padrao.resultado) return;
+            
+            // Procura o padrão nas velas
+            for (let i = 0; i < velas.length; i++) {
+              const vela = velas[i];
+              const numero = parseFloat(vela.numero).toFixed(2);
+              const horario = vela.horario;
+              
+              // Encontrou a vela gatilho do padrão
+              if (numero === padrao.velaGatilho.numero && horario === padrao.velaGatilho.horario) {
+                // Verifica se há uma vela após o gatilho (resultado da entrada)
+                if (i > 0) {
+                  const velaResultado = velas[i - 1];
+                  const numResultado = parseFloat(velaResultado.numero);
+                  
+                  // Se a próxima vela é >= 5x, é WIN
+                  if (numResultado >= 5) {
+                    padrao.wins = 1;
+                    padrao.resultado = 'win';
+                    atualizado = true;
+                  } else {
+                    // Se passou mais de 1 vela e não deu win, é LOSS
+                    padrao.losses = 1;
+                    padrao.resultado = 'loss';
+                    atualizado = true;
+                  }
+                }
+                break;
+              }
+            }
+          });
+          
+          if (atualizado) {
+            salvarPadroesNoStorage(padroesDetectados);
+          }
+        }
+
+        // Função para renderizar padrões no painel
+        function renderizarPadroes(velas) {
+          if (padroesDetectados.length === 0) {
+            padroesList.innerHTML = '<p class="text-gray-400 text-sm">Nenhum padrão detectado ainda...</p>';
+            return;
+          }
+          
+          // Pega a vela atual (mais recente)
+          const velaAtual = velas.length > 0 ? parseFloat(velas[0].numero).toFixed(2) : null;
+          
+          padroesList.innerHTML = padroesDetectados.map(padrao => {
+            const isGatilhoAtual = velaAtual === padrao.antecessor2.numero;
+            const cardClass = isGatilhoAtual ? 'gatilho-atual' : '';
+            
+            let statusBadge = '';
+            if (padrao.resultado === 'win') {
+              statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-green-500 text-white rounded">✓ WIN</span>';
+            } else if (padrao.resultado === 'loss') {
+              statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-red-500 text-white rounded">✗ LOSS</span>';
+            } else if (isGatilhoAtual) {
+              statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-orange-500 text-black rounded animate-pulse">🔥 VELA ATUAL</span>';
+            } else {
+              statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-gray-600 text-white rounded">⏳ Aguardando</span>';
+            }
+            
+            return `
+              <div class="padrao-card glass-effect rounded-xl p-3 border border-indigo-500/30 ${cardClass}">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-gray-400">Padrão Detectado</span>
+                  ${statusBadge}
+                </div>
+                
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2 text-sm">
+                    <span class="text-gray-400">Gatilho (2ª Ant.):</span>
+                    <span class="font-bold text-blue-400">${padrao.antecessor2.numero}x</span>
+                    <span class="text-xs text-gray-500">${padrao.antecessor2.horario}</span>
+                  </div>
+                  
+                  <div class="flex items-center gap-2 text-sm">
+                    <span class="text-gray-400">1ª Antecessora:</span>
+                    <span class="font-bold text-purple-400">${padrao.antecessor1.numero}x</span>
+                    <span class="text-xs text-gray-500">${padrao.antecessor1.horario}</span>
+                  </div>
+                  
+                  <div class="flex items-center gap-2 text-sm">
+                    <span class="text-gray-400">Vela ≥5x:</span>
+                    <span class="font-bold text-pink-400">${padrao.velaGatilho.numero}x</span>
+                    <span class="text-xs text-gray-500">${padrao.velaGatilho.horario}</span>
+                  </div>
+                </div>
+                
+                <div class="mt-3 pt-3 border-t border-gray-700 flex items-center justify-between text-xs">
+                  <div class="flex gap-3">
+                    <span class="text-green-400 font-semibold">✓ ${padrao.wins} Win${padrao.wins !== 1 ? 's' : ''}</span>
+                    <span class="text-red-400 font-semibold">✗ ${padrao.losses} Loss${padrao.losses !== 1 ? 'es' : ''}</span>
+                  </div>
+                  ${padrao.wins + padrao.losses > 0 ? `
+                    <span class="text-gray-400">
+                      ${((padrao.wins / (padrao.wins + padrao.losses)) * 100).toFixed(0)}% Acerto
+                    </span>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
 
         // Função para converter dados da API para o formato esperado
         function convertApiDataToVelas(apiData) {
@@ -676,6 +934,15 @@
           // Extrai e renderiza antecessores recentes e PRO
           const antecessoresData = extrairAntecessoresRecentes(velas);
           renderAntecessoresRecentes(antecessoresData);
+          
+          // Detecta novos padrões
+          detectarPadroes(velas);
+          
+          // Atualiza resultados dos padrões existentes
+          atualizarResultadosPadroes(velas);
+          
+          // Renderiza padrões no painel
+          renderizarPadroes(velas);
           
           // Primeiro, calcular os intervalos percorrendo do mais antigo para o mais recente
           const velasComIntervalo = [];
