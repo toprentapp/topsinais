@@ -180,6 +180,30 @@
         max-height: 80vh;
         overflow-y: auto;
         z-index: 1000;
+        transition: all 0.3s ease;
+      }
+      
+      .padroes-panel.minimized {
+        max-height: 60px;
+        overflow: hidden;
+      }
+      
+      .padroes-panel.minimized #padroes-list {
+        display: none;
+      }
+      
+      .minimize-btn {
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        user-select: none;
+      }
+      
+      .minimize-btn:hover {
+        transform: scale(1.1);
+      }
+      
+      .minimize-btn.minimized {
+        transform: rotate(180deg);
       }
       
       .padrao-card {
@@ -329,10 +353,15 @@
 
       <!-- Painel de Padrões Mapeados -->
       <div id="padroes-panel" class="padroes-panel glass-effect rounded-2xl p-4 lg:block">
-        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          <span>🎯</span>
-          <span>Padrões Mapeados</span>
-        </h3>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>🎯</span>
+            <span>Padrões Mapeados</span>
+          </h3>
+          <button id="minimize-padroes-btn" class="minimize-btn text-2xl text-gray-400 hover:text-white transition-colors" title="Minimizar/Expandir">
+            ▼
+          </button>
+        </div>
         <div id="padroes-list" class="space-y-3">
           <p class="text-gray-400 text-sm">Nenhum padrão detectado ainda...</p>
         </div>
@@ -1194,6 +1223,31 @@
             } finally {
               resetApiBtn.disabled = false;
               resetApiBtn.innerHTML = originalText;
+            }
+          });
+        }
+
+        // Funcionalidade de minimizar/expandir painel de padrões
+        const minimizePadroesBtn = document.getElementById("minimize-padroes-btn");
+        if (minimizePadroesBtn) {
+          // Carrega estado salvo do localStorage
+          const isPanelMinimized = localStorage.getItem('padroesPanelMinimized') === 'true';
+          if (isPanelMinimized) {
+            padroesPanel.classList.add('minimized');
+            minimizePadroesBtn.classList.add('minimized');
+            minimizePadroesBtn.textContent = '▲';
+          }
+
+          minimizePadroesBtn.addEventListener("click", () => {
+            const isMinimized = padroesPanel.classList.toggle('minimized');
+            minimizePadroesBtn.classList.toggle('minimized');
+            
+            if (isMinimized) {
+              minimizePadroesBtn.textContent = '▲';
+              localStorage.setItem('padroesPanelMinimized', 'true');
+            } else {
+              minimizePadroesBtn.textContent = '▼';
+              localStorage.setItem('padroesPanelMinimized', 'false');
             }
           });
         }
