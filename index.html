@@ -335,6 +335,22 @@
         </div>
       </div>
 
+      <!-- Card PAGUE/TOME -->
+      <div id="mercado-status" class="glass-effect rounded-xl p-3 mb-6 border-2" style="height: 60px;">
+        <div class="flex items-center justify-between h-full">
+          <div class="flex items-center gap-4">
+            <span class="font-semibold text-gray-300 text-sm">📊 Mercado:</span>
+            <div id="mercado-badge" class="px-4 py-1.5 rounded-lg font-bold text-sm">
+              <span class="text-gray-500">Carregando...</span>
+            </div>
+          </div>
+          <div id="media-roxas" class="flex items-center gap-2 text-xs">
+            <span class="text-gray-400">Média Roxas:</span>
+            <span class="font-bold text-purple-400">--</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Análise de Antecessores -->
       <div id="analise-antecessores" class="glass-effect rounded-xl p-3 mb-6 max-h-[200px] overflow-y-auto">
         <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
@@ -345,31 +361,11 @@
         </div>
       </div>
 
-      <!-- Antecessores Recentes -->
-      <div id="antecessores-recentes" class="glass-effect rounded-xl p-3 mb-6">
+      <!-- Padrões Top -->
+      <div id="padroes-top" class="glass-effect rounded-xl p-3 mb-6 border-2 border-green-500/50">
         <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
-          <span class="font-semibold text-gray-300">🔥 Últimos 10 Antecessores (≥6x):</span>
-          <div id="antecessores-recentes-list" class="flex gap-2 flex-wrap">
-            <span class="text-gray-500">Carregando...</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Antecessores PRO -->
-      <div id="antecessores-pro" class="glass-effect rounded-xl p-3 mb-6 border-2 border-purple-500/50">
-        <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
-          <span class="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">⭐ Antecessores PRO (8x - 9.99x):</span>
-          <div id="antecessores-pro-list" class="flex gap-2 flex-wrap">
-            <span class="text-gray-500">Carregando...</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Padrões Decimais Mapeados -->
-      <div id="padroes-decimais" class="glass-effect rounded-xl p-3 mb-6 border-2 border-green-500/50">
-        <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
-          <span class="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">🎯 Padrões Decimais Mapeados:</span>
-          <div id="padroes-decimais-list" class="flex gap-2 flex-wrap">
+          <span class="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">🎯 Padrões Top:</span>
+          <div id="padroes-top-list" class="flex gap-2 flex-wrap">
             <span class="text-gray-500">Carregando...</span>
           </div>
         </div>
@@ -466,6 +462,224 @@
           const str = numero.toFixed(2);
           const partes = str.split('.');
           return partes.length > 1 ? '.' + partes[1] : '.00';
+        }
+
+        // NOVA FUNÇÃO: Detectar Padrões Top (repetição ou sequência nas 3 velas recentes)
+        function detectarPadroesTop(velas) {
+          if (velas.length < 3) return [];
+          
+          const padroesTop = [];
+          
+          // Pega as 3 velas mais recentes
+          const vela1 = velas[0]; // Mais recente
+          const vela2 = velas[1];
+          const vela3 = velas[2];
+          
+          // Converte números para string sem ponto: 10.50 -> "1050"
+          const num1Str = vela1.numero.toFixed(2).replace('.', '');
+          const num2Str = vela2.numero.toFixed(2).replace('.', '');
+          const num3Str = vela3.numero.toFixed(2).replace('.', '');
+          
+          // Função auxiliar para verificar se há 2 dígitos iguais entre duas strings
+          function temRepeticao(str1, str2) {
+            const digitos1 = str1.split('');
+            const digitos2 = str2.split('');
+            
+            // Procura 2 dígitos consecutivos iguais
+            for (let i = 0; i < digitos1.length - 1; i++) {
+              const par1 = digitos1[i] + digitos1[i + 1];
+              for (let j = 0; j < digitos2.length - 1; j++) {
+                const par2 = digitos2[j] + digitos2[j + 1];
+                if (par1 === par2) {
+                  return { encontrado: true, digitos: par1, vela1: str1, vela2: str2 };
+                }
+              }
+            }
+            return { encontrado: false };
+          }
+          
+          // Função auxiliar para verificar sequência numérica
+          function temSequencia(str1, str2) {
+            // Procura pares de dígitos consecutivos que formem sequência
+            for (let i = 0; i < str1.length - 1; i++) {
+              const num1 = parseInt(str1[i] + str1[i + 1]);
+              
+              for (let j = 0; j < str2.length - 1; j++) {
+                const num2 = parseInt(str2[j] + str2[j + 1]);
+                
+                // Verifica se são sequenciais (diferença de 1)
+                if (Math.abs(num2 - num1) === 1) {
+                  return { 
+                    encontrado: true, 
+                    num1: num1, 
+                    num2: num2, 
+                    vela1: str1, 
+                    vela2: str2 
+                  };
+                }
+              }
+            }
+            return { encontrado: false };
+          }
+          
+          // Verifica todas as combinações das 3 velas
+          const combinacoes = [
+            { v1: vela1, v2: vela2, s1: num1Str, s2: num2Str },
+            { v1: vela1, v2: vela3, s1: num1Str, s2: num3Str },
+            { v1: vela2, v2: vela3, s1: num2Str, s2: num3Str }
+          ];
+          
+          for (const comb of combinacoes) {
+            // Verifica repetição
+            const repeticao = temRepeticao(comb.s1, comb.s2);
+            if (repeticao.encontrado) {
+              padroesTop.push({
+                tipo: 'Repetição',
+                vela1: comb.v1.numero.toFixed(2) + 'x',
+                vela2: comb.v2.numero.toFixed(2) + 'x',
+                detalhes: `Dígitos ${repeticao.digitos} repetidos`,
+                horario1: comb.v1.horario,
+                horario2: comb.v2.horario
+              });
+            }
+            
+            // Verifica sequência
+            const sequencia = temSequencia(comb.s1, comb.s2);
+            if (sequencia.encontrado) {
+              padroesTop.push({
+                tipo: 'Sequência',
+                vela1: comb.v1.numero.toFixed(2) + 'x',
+                vela2: comb.v2.numero.toFixed(2) + 'x',
+                detalhes: `${sequencia.num1}→${sequencia.num2}`,
+                horario1: comb.v1.horario,
+                horario2: comb.v2.horario
+              });
+            }
+          }
+          
+          return padroesTop;
+        }
+
+        // Função para renderizar Padrões Top
+        function renderizarPadroesTop(padroesTop) {
+          const padroesTopList = document.getElementById('padroes-top-list');
+          
+          if (padroesTop.length === 0) {
+            padroesTopList.innerHTML = '<span class="text-gray-500">Nenhum padrão encontrado nas 3 últimas velas</span>';
+            return;
+          }
+          
+          // Remove duplicatas (mesma combinação)
+          const padroesUnicos = [];
+          const vistos = new Set();
+          
+          for (const padrao of padroesTop) {
+            const chave = `${padrao.tipo}-${padrao.vela1}-${padrao.vela2}`;
+            if (!vistos.has(chave)) {
+              vistos.add(chave);
+              padroesUnicos.push(padrao);
+            }
+          }
+          
+          padroesTopList.innerHTML = padroesUnicos.map(padrao => {
+            const isRepeticao = padrao.tipo === 'Repetição';
+            const bgClass = isRepeticao 
+              ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-400/50' 
+              : 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50';
+            
+            const emoji = isRepeticao ? '🔄' : '➡️';
+            
+            return `
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${bgClass} border-2 shadow-lg">
+                <span class="text-lg">${emoji}</span>
+                <span class="font-bold text-white">${padrao.tipo}</span>
+                <span class="text-gray-300">|</span>
+                <span class="font-semibold text-yellow-300">${padrao.vela1}</span>
+                <span class="text-gray-400">&</span>
+                <span class="font-semibold text-yellow-300">${padrao.vela2}</span>
+                <span class="text-gray-300">→</span>
+                <span class="text-xs text-gray-300">${padrao.detalhes}</span>
+              </span>
+            `;
+          }).join('');
+        }
+
+        // NOVA FUNÇÃO: Analisar mercado PAGUE/TOME
+        function analisarMercadoPagueTome(velas) {
+          if (velas.length < 6) {
+            return { status: 'AGUARDANDO', mediaRoxas: 0, velasAnalisadas: 0 };
+          }
+          
+          // Pega as 6 velas mais recentes
+          const ultimas6 = velas.slice(0, 6);
+          
+          // Conta quantas são >= 2x
+          let velasAcima2x = 0;
+          const velasRoxas = []; // >= 2x e < 10x
+          
+          ultimas6.forEach(vela => {
+            const numero = parseFloat(vela.numero);
+            if (numero >= 2) {
+              velasAcima2x++;
+              
+              // Se for roxa (>= 2x e < 10x), adiciona ao array
+              if (numero < 10) {
+                velasRoxas.push(numero);
+              }
+            }
+          });
+          
+          // Define se é PAGUE ou TOME
+          // PAGUE: >= 3 velas são >= 2x (metade ou mais)
+          // TOME: < 3 velas são >= 2x
+          const status = velasAcima2x >= 3 ? 'PAGUE' : 'TOME';
+          
+          // Calcula média das roxas
+          let mediaRoxas = 0;
+          if (velasRoxas.length > 0) {
+            const soma = velasRoxas.reduce((acc, val) => acc + val, 0);
+            mediaRoxas = soma / velasRoxas.length;
+          }
+          
+          return {
+            status,
+            mediaRoxas: mediaRoxas.toFixed(2),
+            velasAcima2x,
+            totalVelasRoxas: velasRoxas.length,
+            velasAnalisadas: 6
+          };
+        }
+
+        // Função para renderizar status do mercado PAGUE/TOME
+        function renderizarMercadoStatus(analise) {
+          const mercadoBadge = document.getElementById('mercado-badge');
+          const mediaRoxasElement = document.getElementById('media-roxas');
+          
+          if (analise.status === 'AGUARDANDO') {
+            mercadoBadge.innerHTML = '<span class="text-gray-500">Aguardando dados...</span>';
+            mediaRoxasElement.querySelector('span:last-child').textContent = '--';
+            return;
+          }
+          
+          const isPague = analise.status === 'PAGUE';
+          const bgClass = isPague 
+            ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+            : 'bg-gradient-to-r from-red-500 to-orange-600';
+          
+          const emoji = isPague ? '💰' : '🎯';
+          
+          mercadoBadge.className = `px-4 py-1.5 rounded-lg font-bold text-sm ${bgClass} text-white shadow-lg`;
+          mercadoBadge.innerHTML = `${emoji} ${analise.status}`;
+          
+          // Atualiza média das roxas
+          const mediaSpan = mediaRoxasElement.querySelector('span:last-child');
+          if (analise.totalVelasRoxas > 0) {
+            mediaSpan.textContent = `${analise.mediaRoxas}x`;
+            mediaSpan.className = 'font-bold text-purple-300';
+          } else {
+            mediaSpan.textContent = 'Sem roxas';
+            mediaSpan.className = 'font-bold text-gray-400 text-xs';
+          }
         }
 
         // Função para detectar padrões decimais (vela ≥10x -> mapear decimal da 1ª antecessora)
@@ -1026,167 +1240,6 @@
           }).join('');
         }
 
-        function extrairAntecessoresRecentes(velas) {
-          const antecessoresRecentes = [];
-          const antecessoresPro = [];
-          
-          // Percorre as velas mais recentes para encontrar gatilhos >= 6x
-          for (let i = 0; i < velas.length; i++) {
-            const vela = velas[i];
-            const numero = parseFloat(vela.numero);
-            const isGatilho = numero >= 6; // Gatilho: velas >= 6x
-            
-            if (isGatilho) {
-              // Pega os antecessores (1ª e 2ª casa antes do gatilho)
-              const antecessoresDaVela = [];
-              
-              if (i + 1 < velas.length) {
-                const antNum = parseFloat(velas[i + 1].numero);
-                // Só adiciona se for < 2x
-                if (antNum < 2) {
-                  antecessoresDaVela.push({
-                    numero: antNum.toFixed(2),
-                    posicao: 1,
-                    horario: velas[i + 1].horario,
-                    cor: velas[i + 1].cor,
-                    gatilho: numero.toFixed(2)
-                  });
-                }
-              }
-              
-              if (i + 2 < velas.length) {
-                const antNum = parseFloat(velas[i + 2].numero);
-                // Só adiciona se for < 2x
-                if (antNum < 2) {
-                  antecessoresDaVela.push({
-                    numero: antNum.toFixed(2),
-                    posicao: 2,
-                    horario: velas[i + 2].horario,
-                    cor: velas[i + 2].cor,
-                    gatilho: numero.toFixed(2)
-                  });
-                }
-              }
-              
-              // Adiciona aos arrays apropriados
-              antecessoresDaVela.forEach(ant => {
-                const num = parseFloat(ant.numero);
-                const gatilhoNum = parseFloat(ant.gatilho);
-                
-                // Antecessores PRO (quando o gatilho é 8x a 9.99x)
-                if (gatilhoNum >= 8 && gatilhoNum < 10 && antecessoresPro.length < 10) {
-                  antecessoresPro.push(ant);
-                }
-                
-                // Antecessores normais (gatilho >= 6x)
-                if (antecessoresRecentes.length < 10) {
-                  antecessoresRecentes.push(ant);
-                }
-              });
-              
-              // Para quando ambos os arrays estiverem cheios
-              if (antecessoresRecentes.length >= 10 && antecessoresPro.length >= 10) {
-                break;
-              }
-            }
-          }
-          
-          return { antecessoresRecentes, antecessoresPro };
-        }
-
-        function renderAntecessoresRecentes(antecessoresData) {
-          const antecessoresRecentesList = document.getElementById('antecessores-recentes-list');
-          const antecessoresProList = document.getElementById('antecessores-pro-list');
-          
-          // Pega as duas velas mais recentes para verificar se são atuais
-          const velasAtuais = new Set();
-          if (window.velasGlobais && window.velasGlobais.length >= 1) {
-            velasAtuais.add(parseFloat(window.velasGlobais[0].numero).toFixed(2));
-          }
-          if (window.velasGlobais && window.velasGlobais.length >= 2) {
-            velasAtuais.add(parseFloat(window.velasGlobais[1].numero).toFixed(2));
-          }
-          
-          // Renderiza Antecessores Normais (>= 6x)
-          if (antecessoresData.antecessoresRecentes.length === 0) {
-            antecessoresRecentesList.innerHTML = '<span class="text-gray-500">Nenhum antecessor ≥6x encontrado</span>';
-          } else {
-            antecessoresRecentesList.innerHTML = antecessoresData.antecessoresRecentes.map(item => {
-              const isAtual = velasAtuais.has(item.numero);
-              const num = parseFloat(item.numero);
-              
-              // Define cor baseada no valor
-              let bgClass, textClass, emoji;
-              if (num >= 8 && num < 10) {
-                // PRO (8-9.99x)
-                bgClass = isAtual 
-                  ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30' 
-                  : 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-500/30';
-                textClass = isAtual ? 'text-pink-400' : 'text-purple-400';
-                emoji = '⭐';
-              } else if (item.cor === 'azul') {
-                // Azul
-                bgClass = isAtual 
-                  ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30' 
-                  : 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-blue-500/30';
-                textClass = isAtual ? 'text-pink-400' : 'text-blue-400';
-                emoji = '💙';
-              } else if (item.cor === 'roxa') {
-                // Roxa
-                bgClass = isAtual 
-                  ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30' 
-                  : 'bg-gradient-to-r from-purple-400/20 to-purple-500/20 border-purple-400/30';
-                textClass = isAtual ? 'text-pink-400' : 'text-purple-300';
-                emoji = '💜';
-              } else {
-                // Cinza
-                bgClass = isAtual 
-                  ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30' 
-                  : 'bg-gradient-to-r from-gray-500/20 to-gray-600/20 border-gray-500/30';
-                textClass = isAtual ? 'text-pink-400' : 'text-gray-400';
-                emoji = '⚪';
-              }
-              
-              const atualBadge = isAtual 
-                ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded">ATUAL</span>' 
-                : '';
-              
-              return `
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border">
-                  ${atualBadge}
-                  <span class="font-bold ${textClass}">${emoji} ${item.numero}x</span>
-                </span>
-              `;
-            }).join('');
-          }
-          
-          // Renderiza Antecessores PRO (8x - 9.99x)
-          if (antecessoresData.antecessoresPro.length === 0) {
-            antecessoresProList.innerHTML = '<span class="text-gray-500">Nenhum antecessor PRO encontrado</span>';
-          } else {
-            antecessoresProList.innerHTML = antecessoresData.antecessoresPro.map(item => {
-              const isAtual = velasAtuais.has(item.numero);
-              
-              const bgClass = isAtual 
-                ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50' 
-                : 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-500/50';
-              
-              const textClass = isAtual ? 'text-yellow-300' : 'text-purple-300';
-              
-              const atualBadge = isAtual 
-                ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded animate-pulse">ATUAL</span>' 
-                : '';
-              
-              return `
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border-2 shadow-lg">
-                  ${atualBadge}
-                  <span class="font-bold ${textClass}">⭐ ${item.numero}x</span>
-                </span>
-              `;
-            }).join('');
-          }
-        }
-
         function renderVelas(velas) {
           loadingElement.classList.add('hidden');
           historicoContainer.innerHTML = "";
@@ -1194,13 +1247,17 @@
           // Armazena velas globalmente para uso em outras funções
           window.velasGlobais = velas;
           
+          // NOVO: Analisa e renderiza mercado PAGUE/TOME
+          const analiseMercado = analisarMercadoPagueTome(velas);
+          renderizarMercadoStatus(analiseMercado);
+          
           // Analisa antecessores
           const antecessores = analisarAntecessores(velas);
           renderAnalisesAntecessores(antecessores);
           
-          // Extrai e renderiza antecessores recentes e PRO
-          const antecessoresData = extrairAntecessoresRecentes(velas);
-          renderAntecessoresRecentes(antecessoresData);
+          // NOVO: Detecta e renderiza Padrões Top (repetição e sequência)
+          const padroesTop = detectarPadroesTop(velas);
+          renderizarPadroesTop(padroesTop);
           
           // Detecta novos padrões
           detectarPadroes(velas);
@@ -1210,11 +1267,6 @@
           
           // Renderiza padrões no painel
           renderizarPadroes(velas);
-          
-          // Detecta e renderiza padrões decimais
-          detectarPadroesDecimais(velas);
-          atualizarOcorrenciasDecimais(velas);
-          renderizarPadroesDecimais(velas);
           
           // Primeiro, calcular os intervalos percorrendo do mais antigo para o mais recente
           const velasComIntervalo = [];
