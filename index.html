@@ -351,11 +351,11 @@
         </div>
       </div>
 
-      <!-- Análise de Antecessores -->
-      <div id="analise-antecessores" class="glass-effect rounded-xl p-3 mb-6 max-h-[200px] overflow-y-auto">
+      <!-- Estratégia de Intervalos de Rosas -->
+      <div id="analise-intervalos" class="glass-effect rounded-xl p-3 mb-6 max-h-[200px] overflow-y-auto">
         <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
-          <span class="font-semibold text-gray-300">📊 Antecessores de Rosa:</span>
-          <div id="antecessores-list" class="flex gap-2 flex-wrap">
+          <span class="font-semibold text-gray-300">📊 Estratégia de Intervalos de Rosas:</span>
+          <div id="intervalos-list" class="flex gap-2 flex-wrap">
             <span class="text-gray-500">Carregando análise...</span>
           </div>
         </div>
@@ -1110,134 +1110,105 @@
           return velaType === selectedColorFilter;
         }
 
-        function analisarAntecessores(velas) {
-          const antecessoresMap = new Map();
-          const totalAparicoesMap = new Map();
+        // NOVA FUNÇÃO: Analisar intervalos entre rosas
+        function analisarIntervalosRosas(velas) {
+          const intervalosMap = new Map();
+          let ultimaRosaIndex = -1;
           
-          // Verifica se as primeiras 100 velas (mais recentes) não têm nenhuma rosa
-          let temRosaNas20Primeiras = false;
-          for (let i = 0; i < Math.min(100, velas.length); i++) {
-            const isRosa = parseFloat(velas[i].numero) >= 10;
-            if (isRosa) {
-              temRosaNas20Primeiras = true;
-              break;
-            }
-          }
-          
-          // Se não há rosa nas últimas 100 velas E temos pelo menos 100 velas, ignora os padrões anteriores
-          if (!temRosaNas20Primeiras && velas.length >= 100) {
-            return [];
-          }
-          
-          // Conta todas as aparições de cada número
-          velas.forEach(vela => {
-            const numero = parseFloat(vela.numero).toFixed(2);
-            totalAparicoesMap.set(numero, (totalAparicoesMap.get(numero) || 0) + 1);
-          });
-          
-          // Percorre todas as velas para encontrar rosas e seus antecessores
+          // Percorre as velas da mais RECENTE para a mais ANTIGA
           for (let i = 0; i < velas.length; i++) {
             const vela = velas[i];
             const isRosa = parseFloat(vela.numero) >= 10;
             
             if (isRosa) {
-              // Verifica até 2 casas antes
-              for (let j = 1; j <= 2; j++) {
-                if (i + j < velas.length) {
-                  const antecessor = velas[i + j];
-                  const antecessorNumero = parseFloat(antecessor.numero).toFixed(2);
-                  
-                  if (!antecessoresMap.has(antecessorNumero)) {
-                    antecessoresMap.set(antecessorNumero, { 
-                      acertos: 0, 
-                      positions: [],
-                      totalAparicoes: totalAparicoesMap.get(antecessorNumero) || 0
-                    });
-                  }
-                  
-                  const data = antecessoresMap.get(antecessorNumero);
-                  data.acertos++;
-                  data.positions.push(j);
+              // Se já temos uma rosa anterior, calcula o intervalo
+              if (ultimaRosaIndex !== -1) {
+                const intervalo = i - ultimaRosaIndex - 1; // -1 porque não contamos a própria rosa
+                
+                // Só mapeia intervalos de até 10 casas
+                if (intervalo > 0 && intervalo <= 10) {
+                  intervalosMap.set(intervalo, (intervalosMap.get(intervalo) || 0) + 1);
                 }
+              }
+              
+              ultimaRosaIndex = i;
+            }
+          }
+          
+          // Converte o Map em array e ordena por intervalo (menor para maior)
+          const intervalosArray = Array.from(intervalosMap.entries())
+            .map(([intervalo, quantidade]) => ({
+              intervalo,
+              quantidade
+            }))
+            .sort((a, b) => a.intervalo - b.intervalo);
+          
+          // Calcula o intervalo atual (velas desde a última rosa)
+          let intervaloAtual = 0;
+          if (velas.length > 0) {
+            for (let i = 0; i < velas.length; i++) {
+              const isRosa = parseFloat(velas[i].numero) >= 10;
+              if (isRosa) {
+                intervaloAtual = i;
+                break;
               }
             }
           }
           
-          // Pega as duas velas mais recentes (posições 1 e 2)
-          const velasAtuais = new Set();
-          if (velas.length >= 1) velasAtuais.add(parseFloat(velas[0].numero).toFixed(2));
-          if (velas.length >= 2) velasAtuais.add(parseFloat(velas[1].numero).toFixed(2));
-          
-          // Filtra apenas antecessores com pelo menos 3 aparições totais
-          // E probabilidade mínima de 20% para garantir lucro saindo em 5x
-          const antecessoresRelevantes = Array.from(antecessoresMap.entries())
-            .filter(([numero, data]) => data.totalAparicoes >= 3)
-            .map(([numero, data]) => {
-              const erros = data.totalAparicoes - data.acertos;
-              const probabilidade = ((data.acertos / data.totalAparicoes) * 100).toFixed(1);
-              const isAtual = velasAtuais.has(numero);
-              
-              return {
-                numero,
-                acertos: data.acertos,
-                erros,
-                totalAparicoes: data.totalAparicoes,
-                probabilidade,
-                positions: data.positions,
-                isAtual
-              };
-            })
-            .filter(data => parseFloat(data.probabilidade) >= 20) // Mínimo 20% para lucro
-            .sort((a, b) => parseFloat(b.probabilidade) - parseFloat(a.probabilidade))
-            .slice(0, 10); // Limita aos top 10
-          
-          return antecessoresRelevantes;
+          return {
+            intervalos: intervalosArray,
+            intervaloAtual: intervaloAtual
+          };
         }
         
-        function renderAnalisesAntecessores(antecessores) {
-          const antecessoresList = document.getElementById('antecessores-list');
+        function renderIntervalosRosas(dados) {
+          const intervalosList = document.getElementById('intervalos-list');
           
-          if (antecessores.length === 0) {
-            antecessoresList.innerHTML = '<span class="text-gray-500">Nenhum padrão lucrativo encontrado (mín. 3 aparições e 20% de acerto para lucro saindo em 5x)</span>';
+          if (dados.intervalos.length === 0) {
+            intervalosList.innerHTML = '<span class="text-gray-500">Nenhum padrão de intervalo encontrado ainda</span>';
             return;
           }
           
-          antecessoresList.innerHTML = antecessores.map(data => {
-            const posicoes = {};
-            data.positions.forEach(pos => {
-              posicoes[pos] = (posicoes[pos] || 0) + 1;
-            });
+          const { intervalos, intervaloAtual } = dados;
+          
+          intervalosList.innerHTML = intervalos.map(data => {
+            // Verifica se o intervalo atual está próximo deste padrão
+            const isProximo = intervaloAtual > 0 && intervaloAtual === data.intervalo;
             
-            const detalhes = Object.entries(posicoes)
-              .map(([pos, count]) => `${count}x na ${pos}ª casa`)
-              .join(', ');
+            // Define cores baseadas na quantidade de ocorrências
+            let bgClass = 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30';
+            let textClass = 'text-pink-400';
             
-            // Define cor da probabilidade
-            let probColor = 'text-gray-400';
-            const prob = parseFloat(data.probabilidade);
-            if (prob >= 70) probColor = 'text-green-400';
-            else if (prob >= 50) probColor = 'text-yellow-400';
-            else if (prob >= 30) probColor = 'text-orange-400';
-            else probColor = 'text-red-400';
+            if (data.quantidade >= 5) {
+              bgClass = 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-500/50';
+              textClass = 'text-green-400';
+            } else if (data.quantidade >= 3) {
+              bgClass = 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50';
+              textClass = 'text-yellow-400';
+            }
             
-            // Badge de vela atual
-            const atualBadge = data.isAtual 
-              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded">ATUAL</span>' 
+            // Badge de padrão atual
+            const proximoBadge = isProximo
+              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded animate-pulse">🔥 ATUAL</span>' 
               : '';
             
             return `
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30">
-                ${atualBadge}
-                <span class="font-bold text-pink-400">${data.numero}x</span>
-                <span class="text-gray-400">→</span>
-                <span class="${probColor} font-bold text-sm">${data.probabilidade}%</span>
-                <span class="text-gray-500 text-xs">|</span>
-                <span class="text-green-400 font-semibold text-xs">${data.acertos}✓</span>
-                <span class="text-red-400 font-semibold text-xs">${data.erros}✗</span>
-                <span class="text-gray-500 text-xs">(${detalhes})</span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border shadow-md">
+                ${proximoBadge}
+                <span class="font-bold ${textClass}">${data.intervalo} Casa${data.intervalo > 1 ? 's' : ''}</span>
+                <span class="text-gray-400 text-xs">→</span>
+                <span class="font-semibold text-white text-sm">${data.quantidade}x</span>
               </span>
             `;
           }).join('');
+          
+          // Adiciona informação sobre o intervalo atual
+          if (intervaloAtual > 0) {
+            const infoAtual = document.createElement('div');
+            infoAtual.className = 'w-full mt-2 px-2.5 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 text-xs text-blue-300';
+            infoAtual.innerHTML = `📍 <strong>${intervaloAtual}</strong> vela${intervaloAtual > 1 ? 's' : ''} desde a última rosa`;
+            intervalosList.appendChild(infoAtual);
+          }
         }
 
         function renderVelas(velas) {
@@ -1251,9 +1222,9 @@
           const analiseMercado = analisarMercadoPagueTome(velas);
           renderizarMercadoStatus(analiseMercado);
           
-          // Analisa antecessores
-          const antecessores = analisarAntecessores(velas);
-          renderAnalisesAntecessores(antecessores);
+          // NOVO: Analisa e renderiza intervalos de rosas
+          const dadosIntervalos = analisarIntervalosRosas(velas);
+          renderIntervalosRosas(dadosIntervalos);
           
           // NOVO: Detecta e renderiza Padrões Top (repetição e sequência)
           const padroesTop = detectarPadroesTop(velas);
