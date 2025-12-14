@@ -344,9 +344,15 @@
               <span class="text-gray-500">Carregando...</span>
             </div>
           </div>
-          <div id="media-roxas" class="flex items-center gap-2 text-xs">
-            <span class="text-gray-400">Média Roxas:</span>
-            <span class="font-bold text-purple-400">--</span>
+          <div class="flex items-center gap-4 text-xs">
+            <div id="media-roxas" class="flex items-center gap-2">
+              <span class="text-gray-400">Média Roxas:</span>
+              <span class="font-bold text-purple-400">--</span>
+            </div>
+            <div id="media-azuis" class="flex items-center gap-2">
+              <span class="text-gray-400">Média Azuis <2x:</span>
+              <span class="font-bold text-blue-400">--</span>
+            </div>
           </div>
         </div>
       </div>
@@ -607,7 +613,7 @@
         // NOVA FUNÇÃO: Analisar mercado PAGUE/TOME
         function analisarMercadoPagueTome(velas) {
           if (velas.length < 6) {
-            return { status: 'AGUARDANDO', mediaRoxas: 0, velasAnalisadas: 0 };
+            return { status: 'AGUARDANDO', mediaRoxas: 0, mediaAzuis: 0, velasAnalisadas: 0 };
           }
           
           // Pega as 6 velas mais recentes
@@ -616,6 +622,7 @@
           // Conta quantas são >= 2x
           let velasAcima2x = 0;
           const velasRoxas = []; // >= 2x e < 10x
+          const velasAzuis = []; // < 2x
           
           ultimas6.forEach(vela => {
             const numero = parseFloat(vela.numero);
@@ -626,6 +633,9 @@
               if (numero < 10) {
                 velasRoxas.push(numero);
               }
+            } else {
+              // Se for azul (< 2x), adiciona ao array
+              velasAzuis.push(numero);
             }
           });
           
@@ -641,11 +651,20 @@
             mediaRoxas = soma / velasRoxas.length;
           }
           
+          // Calcula média das azuis
+          let mediaAzuis = 0;
+          if (velasAzuis.length > 0) {
+            const soma = velasAzuis.reduce((acc, val) => acc + val, 0);
+            mediaAzuis = soma / velasAzuis.length;
+          }
+          
           return {
             status,
             mediaRoxas: mediaRoxas.toFixed(2),
+            mediaAzuis: mediaAzuis.toFixed(2),
             velasAcima2x,
             totalVelasRoxas: velasRoxas.length,
+            totalVelasAzuis: velasAzuis.length,
             velasAnalisadas: 6
           };
         }
@@ -654,10 +673,12 @@
         function renderizarMercadoStatus(analise) {
           const mercadoBadge = document.getElementById('mercado-badge');
           const mediaRoxasElement = document.getElementById('media-roxas');
+          const mediaAzuisElement = document.getElementById('media-azuis');
           
           if (analise.status === 'AGUARDANDO') {
             mercadoBadge.innerHTML = '<span class="text-gray-500">Aguardando dados...</span>';
             mediaRoxasElement.querySelector('span:last-child').textContent = '--';
+            mediaAzuisElement.querySelector('span:last-child').textContent = '--';
             return;
           }
           
@@ -672,13 +693,23 @@
           mercadoBadge.innerHTML = `${emoji} ${analise.status}`;
           
           // Atualiza média das roxas
-          const mediaSpan = mediaRoxasElement.querySelector('span:last-child');
+          const mediaRoxasSpan = mediaRoxasElement.querySelector('span:last-child');
           if (analise.totalVelasRoxas > 0) {
-            mediaSpan.textContent = `${analise.mediaRoxas}x`;
-            mediaSpan.className = 'font-bold text-purple-300';
+            mediaRoxasSpan.textContent = `${analise.mediaRoxas}x`;
+            mediaRoxasSpan.className = 'font-bold text-purple-300';
           } else {
-            mediaSpan.textContent = 'Sem roxas';
-            mediaSpan.className = 'font-bold text-gray-400 text-xs';
+            mediaRoxasSpan.textContent = 'Sem roxas';
+            mediaRoxasSpan.className = 'font-bold text-gray-400 text-xs';
+          }
+          
+          // Atualiza média das azuis
+          const mediaAzuisSpan = mediaAzuisElement.querySelector('span:last-child');
+          if (analise.totalVelasAzuis > 0) {
+            mediaAzuisSpan.textContent = `${analise.mediaAzuis}x`;
+            mediaAzuisSpan.className = 'font-bold text-blue-300';
+          } else {
+            mediaAzuisSpan.textContent = 'Sem azuis';
+            mediaAzuisSpan.className = 'font-bold text-gray-400 text-xs';
           }
         }
 
