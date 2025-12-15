@@ -367,6 +367,16 @@
         </div>
       </div>
 
+      <!-- Estratégia de Intervalos de Minutos Rosas -->
+      <div id="analise-minutos-rosas" class="glass-effect rounded-xl p-3 mb-6 max-h-[200px] overflow-y-auto">
+        <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
+          <span class="font-semibold text-gray-300">📊 Estratégia de Intervalos de Minutos Rosas:</span>
+          <div id="minutos-rosas-list" class="flex gap-2 flex-wrap">
+            <span class="text-gray-500">Carregando análise...</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Padrões Top -->
       <div id="padroes-top" class="glass-effect rounded-xl p-3 mb-6 border-2 border-green-500/50">
         <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
@@ -1194,22 +1204,22 @@
         
         function renderIntervalosRosas(dados) {
           const intervalosList = document.getElementById('intervalos-list');
-          
+
           if (dados.intervalos.length === 0) {
             intervalosList.innerHTML = '<span class="text-gray-500">Nenhum padrão de intervalo encontrado ainda</span>';
             return;
           }
-          
+
           const { intervalos, intervaloAtual } = dados;
-          
+
           intervalosList.innerHTML = intervalos.map(data => {
             // Verifica se o intervalo atual está próximo deste padrão
             const isProximo = intervaloAtual > 0 && intervaloAtual === data.intervalo;
-            
+
             // Define cores baseadas na quantidade de ocorrências
             let bgClass = 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30';
             let textClass = 'text-pink-400';
-            
+
             if (data.quantidade >= 5) {
               bgClass = 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-500/50';
               textClass = 'text-green-400';
@@ -1217,12 +1227,12 @@
               bgClass = 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50';
               textClass = 'text-yellow-400';
             }
-            
+
             // Badge de padrão atual
             const proximoBadge = isProximo
-              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded animate-pulse">🔥 ATUAL</span>' 
+              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded animate-pulse">🔥 ATUAL</span>'
               : '';
-            
+
             return `
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border shadow-md">
                 ${proximoBadge}
@@ -1232,13 +1242,121 @@
               </span>
             `;
           }).join('');
-          
+
           // Adiciona informação sobre o intervalo atual
           if (intervaloAtual > 0) {
             const infoAtual = document.createElement('div');
             infoAtual.className = 'w-full mt-2 px-2.5 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 text-xs text-blue-300';
             infoAtual.innerHTML = `📍 <strong>${intervaloAtual}</strong> vela${intervaloAtual > 1 ? 's' : ''} desde a última rosa`;
             intervalosList.appendChild(infoAtual);
+          }
+        }
+
+        // NOVA FUNÇÃO: Analisar intervalos de minutos entre rosas
+        function analisarMinutosRosas(velas) {
+          const minutosMap = new Map();
+          let ultimaRosaHorario = null;
+          let minutosDesdeUltima = 0;
+
+          // Percorre da mais antiga para a mais recente
+          for (let i = velas.length - 1; i >= 0; i--) {
+            const vela = velas[i];
+            const isRosa = parseFloat(vela.numero) >= 10;
+
+            if (isRosa) {
+              // Extrai o minuto do horário
+              const horario = vela.horario; // formato "HH:MM"
+              const partes = horario.split(':');
+              const minuto = parseInt(partes[1]);
+
+              // Se temos uma rosa anterior, calcula intervalo em minutos
+              if (ultimaRosaHorario) {
+                const [horaUltima, minUltima] = ultimaRosaHorario.split(':');
+                const totalMinUltima = parseInt(horaUltima) * 60 + parseInt(minUltima);
+                const totalMinAtual = parseInt(partes[0]) * 60 + minuto;
+
+                const intervaloMin = totalMinAtual - totalMinUltima;
+
+                // Mapeia intervalos de até 60 minutos
+                if (intervaloMin > 0 && intervaloMin <= 60) {
+                  minutosMap.set(intervaloMin, (minutosMap.get(intervaloMin) || 0) + 1);
+                }
+              }
+
+              ultimaRosaHorario = horario;
+            }
+          }
+
+          // Intervalo atual (minutos desde última rosa)
+          if (velas.length > 0 && ultimaRosaHorario) {
+            const [horaUltima, minUltima] = ultimaRosaHorario.split(':');
+            const totalMinUltima = parseInt(horaUltima) * 60 + parseInt(minUltima);
+
+            // Vela mais recente
+            const velaAtual = velas[0];
+            const horarioAtual = velaAtual.horario;
+            const [horaAtual, minAtual] = horarioAtual.split(':');
+            const totalMinAtual = parseInt(horaAtual) * 60 + parseInt(minAtual);
+
+            minutosDesdeUltima = totalMinAtual - totalMinUltima;
+          }
+
+          const minutosArray = Array.from(minutosMap.entries())
+            .map(([minutos, quantidade]) => ({
+              minutos,
+              quantidade
+            }))
+            .sort((a, b) => a.minutos - b.minutos);
+
+          return {
+            minutos: minutosArray,
+            minutosDesdeUltima
+          };
+        }
+
+        function renderizarMinutosRosas(dados) {
+          const minutosList = document.getElementById('minutos-rosas-list');
+
+          if (dados.minutos.length === 0) {
+            minutosList.innerHTML = '<span class="text-gray-500">Nenhum padrão de minutos encontrado ainda</span>';
+            return;
+          }
+
+          const { minutos, minutosDesdeUltima } = dados;
+
+          minutosList.innerHTML = minutos.map(data => {
+            const isProximo = minutosDesdeUltima > 0 && minutosDesdeUltima === data.minutos;
+
+            let bgClass = 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30';
+            let textClass = 'text-pink-400';
+
+            if (data.quantidade >= 5) {
+              bgClass = 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-500/50';
+              textClass = 'text-green-400';
+            } else if (data.quantidade >= 3) {
+              bgClass = 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50';
+              textClass = 'text-yellow-400';
+            }
+
+            const proximoBadge = isProximo
+              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded animate-pulse">🔥 ATUAL</span>'
+              : '';
+
+            return `
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border shadow-md">
+                ${proximoBadge}
+                <span class="font-bold ${textClass}">${data.minutos} Min</span>
+                <span class="text-gray-400 text-xs">→</span>
+                <span class="font-semibold text-white text-sm">${data.quantidade}x</span>
+              </span>
+            `;
+          }).join('');
+
+          if (minutosDesdeUltima > 0) {
+            const infoAtual = document.createElement('div');
+            infoAtual.className = 'w-full mt-2 px-2.5 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 text-xs text-blue-300';
+            infoAtual.innerHTML = `📍 <strong>${minutosDesdeUltima}</strong> minuto${minutosDesdeUltima > 1 ? 's' : ''} desde a última rosa`;
+            minutosList.appendChild(infoAtual);
           }
         }
 
@@ -1256,7 +1374,11 @@
           // NOVO: Analisa e renderiza intervalos de rosas
           const dadosIntervalos = analisarIntervalosRosas(velas);
           renderIntervalosRosas(dadosIntervalos);
-          
+
+          // NOVO: Analisa e renderiza intervalos de minutos rosas
+          const dadosMinutos = analisarMinutosRosas(velas);
+          renderizarMinutosRosas(dadosMinutos);
+
           // NOVO: Detecta e renderiza Padrões Top (repetição e sequência)
           const padroesTop = detectarPadroesTop(velas);
           renderizarPadroesTop(padroesTop);
