@@ -1269,160 +1269,115 @@
           }
         }
 
-        // NOVA FUNÇÃO: Analisar intervalos de minutos entre rosas
+        // NOVA FUNÇÃO: Analisar próximos minutos rosas (10 minutos após cada rosa)
         function analisarMinutosRosas(velas) {
-          const minutosMap = new Map();
-          let ultimaRosaHorario = null;
-          let minutosDesdeUltima = 0;
+          const proximosMinutos = [];
 
-          // Percorre da mais antiga para a mais recente
+          // Usa o horário da vela mais recente como referência de "agora"
+          const velaMaisRecente = velas[0];
+          const horarioAtual = velaMaisRecente.horario; // formato "HH:MM"
+          const [horaAtual, minAtual] = horarioAtual.split(':').map(Number);
+          const totalMinAtual = horaAtual * 60 + minAtual;
+
+          // Percorre as velas para encontrar rosas e calcular próximos minutos
           for (let i = velas.length - 1; i >= 0; i--) {
             const vela = velas[i];
             const isRosa = parseFloat(vela.numero) >= 10;
 
             if (isRosa) {
-              // Extrai o minuto do horário
-              const horario = vela.horario; // formato "HH:MM"
-              const partes = horario.split(':');
-              const minuto = parseInt(partes[1]);
+              const horarioRosa = vela.horario; // formato "HH:MM"
+              const [horaRosa, minRosa] = horarioRosa.split(':').map(Number);
+              const totalMinRosa = horaRosa * 60 + minRosa;
+              const totalMinProximo = totalMinRosa + 10; // 10 minutos após a rosa
 
-              // Se temos uma rosa anterior, calcula intervalo em minutos
-              if (ultimaRosaHorario) {
-                const [horaUltima, minUltima] = ultimaRosaHorario.split(':');
-                const totalMinUltima = parseInt(horaUltima) * 60 + parseInt(minUltima);
-                const totalMinAtual = parseInt(partes[0]) * 60 + minuto;
+              const horaProxima = Math.floor(totalMinProximo / 60) % 24;
+              const minProximo = totalMinProximo % 60;
 
-                const intervaloMin = totalMinAtual - totalMinUltima;
+              // Calcula diferença em relação ao horário atual (vela mais recente)
+              const diffMin = totalMinProximo - totalMinAtual;
 
-                // Mapeia intervalos de até 60 minutos
-                if (intervaloMin > 0 && intervaloMin <= 60) {
-                  minutosMap.set(intervaloMin, (minutosMap.get(intervaloMin) || 0) + 1);
-                }
+              // Só adiciona se estiver no futuro (até 60 minutos à frente)
+              if (diffMin > 0 && diffMin <= 60) {
+                proximosMinutos.push({
+                  horarioRosa: horarioRosa,
+                  horarioProximo: `${horaProxima.toString().padStart(2, '0')}:${minProximo.toString().padStart(2, '0')}`,
+                  minutosFaltando: diffMin,
+                  numeroRosa: vela.numero.toFixed(2)
+                });
               }
-
-              ultimaRosaHorario = horario;
             }
           }
 
-          // Intervalo atual (minutos desde última rosa)
-          if (velas.length > 0 && ultimaRosaHorario) {
-            const [horaUltima, minUltima] = ultimaRosaHorario.split(':');
-            const totalMinUltima = parseInt(horaUltima) * 60 + parseInt(minUltima);
+          // Ordena por horário próximo
+          proximosMinutos.sort((a, b) => a.minutosFaltando - b.minutosFaltando);
 
-            // Vela mais recente
-            const velaAtual = velas[0];
-            const horarioAtual = velaAtual.horario;
-            const [horaAtual, minAtual] = horarioAtual.split(':');
-            const totalMinAtual = parseInt(horaAtual) * 60 + parseInt(minAtual);
-
-            minutosDesdeUltima = totalMinAtual - totalMinUltima;
-          }
-
-          const minutosArray = Array.from(minutosMap.entries())
-            .map(([minutos, quantidade]) => ({
-              minutos,
-              quantidade
-            }))
-            .sort((a, b) => a.minutos - b.minutos);
+          // Verifica se algum está muito próximo (1 minuto ou menos)
+          const alertaProximo = proximosMinutos.find(p => p.minutosFaltando <= 1);
 
           return {
-            minutos: minutosArray,
-            minutosDesdeUltima
+            proximosMinutos: proximosMinutos.slice(0, 5), // Mostra apenas os 5 próximos
+            alertaProximo
           };
         }
 
         function renderizarMinutosRosas(dados) {
           const minutosList = document.getElementById('minutos-rosas-list');
           const contadorMinutos = document.getElementById('contador-minutos-rosas');
-          const contadorValor = document.getElementById('contador-valor');
           const alertaEntrada = document.getElementById('alerta-entrada');
-          const minutoEsperado = document.getElementById('minuto-esperado');
 
-          if (dados.minutos.length === 0) {
-            minutosList.innerHTML = '<span class="text-gray-500">Nenhum padrão de minutos encontrado ainda</span>';
-            contadorMinutos.classList.add('hidden');
-            alertaEntrada.classList.add('hidden');
+          // Remove old elements that are no longer used
+          contadorMinutos.classList.add('hidden');
+          alertaEntrada.classList.add('hidden');
+
+          if (dados.proximosMinutos.length === 0) {
+            minutosList.innerHTML = '<span class="text-gray-500">Nenhum horário previsto para próximas rosas</span>';
             return;
           }
 
-          const { minutos, minutosDesdeUltima } = dados;
+          const { proximosMinutos, alertaProximo } = dados;
 
-          // Mostra/esconde contador baseado na existência de última rosa
-          if (minutosDesdeUltima > 0) {
-            contadorMinutos.classList.remove('hidden');
-            contadorValor.textContent = minutosDesdeUltima;
-
-            // Alerta para entrada: quando estiver próximo de 10 minutos (entre 9 e 11)
-            const deveAlertar = minutosDesdeUltima >= 9 && minutosDesdeUltima <= 11;
-            if (deveAlertar) {
-              alertaEntrada.classList.remove('hidden');
-
-              // Calcula qual será o minuto da próxima vela (última rosa + 10 minutos)
-              // Pega o horário da última rosa das velas globais
-              const velasGlobais = window.velasGlobais || [];
-              let ultimoHorarioRosa = null;
-
-              for (let i = velasGlobais.length - 1; i >= 0; i--) {
-                const vela = velasGlobais[i];
-                if (parseFloat(vela.numero) >= 10) {
-                  ultimoHorarioRosa = vela.horario;
-                  break;
-                }
-              }
-
-              if (ultimoHorarioRosa) {
-                const [horaRosa, minRosa] = ultimoHorarioRosa.split(':');
-                const totalMinRosa = parseInt(horaRosa) * 60 + parseInt(minRosa);
-                const totalMinEsperado = totalMinRosa + 10; // Próxima vela esperada em 10 minutos
-                const horaEsperada = Math.floor(totalMinEsperado / 60);
-                const minEsperado = totalMinEsperado % 60;
-                const minutoFormatado = minEsperado.toString().padStart(2, '0');
-                minutoEsperado.textContent = minutoFormatado;
-              } else {
-                minutoEsperado.textContent = '--';
-              }
-            } else {
-              alertaEntrada.classList.add('hidden');
-            }
-          } else {
-            contadorMinutos.classList.add('hidden');
-            alertaEntrada.classList.add('hidden');
+          // Show alert if there's a very close upcoming time
+          if (alertaProximo) {
+            alertaEntrada.classList.remove('hidden');
+            alertaEntrada.innerHTML = `
+              <div class="space-y-1">
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-500/40 to-pink-500/40 border-2 border-red-500/70 text-red-300 font-bold text-sm animate-pulse">
+                  ⚠️ ROSA PRÓXIMA! ⚠️
+                </span>
+                <div class="text-xs text-red-200 bg-red-500/20 rounded px-2 py-1 border border-red-500/30">
+                  Próxima rosa esperada em: <span class="font-bold">${alertaProximo.horarioProximo}</span> (${alertaProximo.minutosFaltando} min)
+                </div>
+                <div class="text-xs text-gray-300">
+                  Rosa anterior: ${alertaProximo.numeroRosa}x às ${alertaProximo.horarioRosa}
+                </div>
+              </div>
+            `;
           }
 
-          minutosList.innerHTML = minutos.map(data => {
-            const isProximo = minutosDesdeUltima > 0 && minutosDesdeUltima === data.minutos;
+          minutosList.innerHTML = proximosMinutos.map(data => {
+            const isImediato = data.minutosFaltando <= 2;
 
             let bgClass = 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30';
             let textClass = 'text-pink-400';
 
-            if (data.quantidade >= 5) {
-              bgClass = 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-500/50';
-              textClass = 'text-green-400';
-            } else if (data.quantidade >= 3) {
-              bgClass = 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50';
-              textClass = 'text-yellow-400';
+            if (isImediato) {
+              bgClass = 'bg-gradient-to-r from-red-500/30 to-pink-500/30 border-red-500/50';
+              textClass = 'text-red-400';
             }
 
-            const proximoBadge = isProximo
-              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded animate-pulse">🔥 ATUAL</span>'
+            const imediatoBadge = isImediato
+              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded animate-pulse">⚠️ PRÓXIMO</span>'
               : '';
 
             return `
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border shadow-md">
-                ${proximoBadge}
-                <span class="font-bold ${textClass}">${data.minutos} Min</span>
-                <span class="text-gray-400 text-xs">→</span>
-                <span class="font-semibold text-white text-sm">${data.quantidade}x</span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${bgClass} border shadow-md">
+                ${imediatoBadge}
+                <span class="font-bold ${textClass}">${data.horarioProximo}</span>
+                <span class="text-gray-400 text-xs">(${data.minutosFaltando} min)</span>
+                <span class="text-gray-300 text-xs">← ${data.numeroRosa}x</span>
               </span>
             `;
           }).join('');
-
-          if (minutosDesdeUltima > 0) {
-            const infoAtual = document.createElement('div');
-            infoAtual.className = 'w-full mt-2 px-2.5 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 text-xs text-blue-300';
-            infoAtual.innerHTML = `📍 <strong>${minutosDesdeUltima}</strong> minuto${minutosDesdeUltima > 1 ? 's' : ''} desde a última rosa`;
-            minutosList.appendChild(infoAtual);
-          }
         }
 
         function renderVelas(velas) {
