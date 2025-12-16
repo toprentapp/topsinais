@@ -1269,19 +1269,22 @@
           }
         }
 
-        // NOVA FUNÇÃO: Analisar próximos minutos rosas (10 minutos após cada rosa)
+        // NOVA FUNÇÃO: Analisar próximos minutos rosas (10 minutos após cada rosa das últimas 20 velas)
         function analisarMinutosRosas(velas) {
           const proximosMinutos = [];
 
+          // Limita a análise às últimas 30 velas mais recentes
+          const velasRecentes = velas.slice(0, 30);
+
           // Usa o horário da vela mais recente como referência de "agora"
-          const velaMaisRecente = velas[0];
+          const velaMaisRecente = velasRecentes[0];
           const horarioAtual = velaMaisRecente.horario; // formato "HH:MM"
           const [horaAtual, minAtual] = horarioAtual.split(':').map(Number);
           const totalMinAtual = horaAtual * 60 + minAtual;
 
-          // Percorre as velas para encontrar rosas e calcular próximos minutos
-          for (let i = velas.length - 1; i >= 0; i--) {
-            const vela = velas[i];
+          // Percorre as 20 velas recentes para encontrar rosas e calcular próximos minutos
+          for (let i = velasRecentes.length - 1; i >= 0; i--) {
+            const vela = velasRecentes[i];
             const isRosa = parseFloat(vela.numero) >= 10;
 
             if (isRosa) {
