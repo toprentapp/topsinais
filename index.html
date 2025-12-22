@@ -434,7 +434,7 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        const API_URL = "https://aviator.pix24h.online/historico";
+        const API_URL = "https://crash.pixios.com.br/historico";
 
         const casaSelector = document.getElementById("casa-selector");
         const colorFilter = document.getElementById("color-filter");
@@ -1618,7 +1618,7 @@
             
             try {
               const casaSelecionada = casaSelector.value;
-              const response = await fetch(`https://aviator.pix24h.online/reset?casa=${casaSelecionada}`);
+              const response = await fetch(`https://crash.pixios.com.br/reset?casa=${casaSelecionada}`);
               const data = await response.json();
               
               if (data.success) {
