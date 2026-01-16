@@ -493,7 +493,7 @@
           return partes.length > 1 ? '.' + partes[1] : '.00';
         }
 
-        // NOVA FUNÇÃO: Detectar Padrões Top (repetição ou sequência nas 3 velas recentes)
+        // NOVA FUNÇÃO: Detectar Padrões Top (apenas repetição nas 3 velas recentes)
         function detectarPadroesTop(velas) {
           if (velas.length < 3) return [];
           
@@ -527,30 +527,6 @@
             return { encontrado: false };
           }
           
-          // Função auxiliar para verificar sequência numérica
-          function temSequencia(str1, str2) {
-            // Procura pares de dígitos consecutivos que formem sequência
-            for (let i = 0; i < str1.length - 1; i++) {
-              const num1 = parseInt(str1[i] + str1[i + 1]);
-              
-              for (let j = 0; j < str2.length - 1; j++) {
-                const num2 = parseInt(str2[j] + str2[j + 1]);
-                
-                // Verifica se são sequenciais (diferença de 1)
-                if (Math.abs(num2 - num1) === 1) {
-                  return { 
-                    encontrado: true, 
-                    num1: num1, 
-                    num2: num2, 
-                    vela1: str1, 
-                    vela2: str2 
-                  };
-                }
-              }
-            }
-            return { encontrado: false };
-          }
-          
           // Verifica todas as combinações das 3 velas
           const combinacoes = [
             { v1: vela1, v2: vela2, s1: num1Str, s2: num2Str },
@@ -559,7 +535,7 @@
           ];
           
           for (const comb of combinacoes) {
-            // Verifica repetição
+            // Verifica apenas repetição
             const repeticao = temRepeticao(comb.s1, comb.s2);
             if (repeticao.encontrado) {
               padroesTop.push({
@@ -567,19 +543,6 @@
                 vela1: comb.v1.numero.toFixed(2) + 'x',
                 vela2: comb.v2.numero.toFixed(2) + 'x',
                 detalhes: `Dígitos ${repeticao.digitos} repetidos`,
-                horario1: comb.v1.horario,
-                horario2: comb.v2.horario
-              });
-            }
-            
-            // Verifica sequência
-            const sequencia = temSequencia(comb.s1, comb.s2);
-            if (sequencia.encontrado) {
-              padroesTop.push({
-                tipo: 'Sequência',
-                vela1: comb.v1.numero.toFixed(2) + 'x',
-                vela2: comb.v2.numero.toFixed(2) + 'x',
-                detalhes: `${sequencia.num1}→${sequencia.num2}`,
                 horario1: comb.v1.horario,
                 horario2: comb.v2.horario
               });
@@ -611,12 +574,8 @@
           }
           
           padroesTopList.innerHTML = padroesUnicos.map(padrao => {
-            const isRepeticao = padrao.tipo === 'Repetição';
-            const bgClass = isRepeticao 
-              ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-400/50' 
-              : 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50';
-            
-            const emoji = isRepeticao ? '🔄' : '➡️';
+            const bgClass = 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-400/50';
+            const emoji = '🔄';
             
             return `
               <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${bgClass} border-2 shadow-lg">
