@@ -1092,7 +1092,7 @@
 
             if (apiResponse.success && apiResponse.candles && apiResponse.candles.length > 0) {
               const velas = convertApiDataToVelas(apiResponse.candles);
-              renderVelas(velas);
+              renderVelas(velas.reverse());
             } else {
               console.log("⚠️ Nenhum dado disponível da API");
               historicoContainer.innerHTML = '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-gray-400">Aguardando dados da API...</p></div>';
