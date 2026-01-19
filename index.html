@@ -556,29 +556,10 @@
           }
         }
 
-        // Funções de LocalStorage para sinais de repetição
-        function salvarSinaisRepeticaoNoStorage(sinais) {
-          try {
-            localStorage.setItem('sinaisRepeticao', JSON.stringify(sinais));
-          } catch (error) {
-            console.error('Erro ao salvar sinais de repetição no localStorage:', error);
-          }
-        }
-
-        function carregarSinaisRepeticaoDoStorage() {
-          try {
-            const sinais = localStorage.getItem('sinaisRepeticao');
-            return sinais ? JSON.parse(sinais) : [];
-          } catch (error) {
-            console.error('Erro ao carregar sinais de repetição do localStorage:', error);
-            return [];
-          }
-        }
-
         // Carregar padrões salvos ao iniciar
         padroesDetectados = carregarPadroesDoStorage();
         padroesDecimais = carregarPadroesDecimaisDoStorage();
-        sinaisRepeticao = carregarSinaisRepeticaoDoStorage();
+        // sinaisRepeticao não usa localStorage - é recalculado a cada vez
 
         // Função para extrair decimal de um número
         function extrairDecimal(numero) {
@@ -1459,105 +1440,115 @@
           }).join('');
         }
 
-        // NOVA FUNÇÃO: Detectar sinais de repetição
-        function detectarSinaisRepeticao(velas, padroesTop) {
-          if (padroesTop.length === 0) return;
+        // NOVA FUNÇÃO: Detectar TODOS os sinais de repetição no histórico
+        function detectarTodosSinaisRepeticao(velas) {
+          sinaisRepeticao = []; // Limpa e recalcula tudo
           
-          // Para cada padrão de repetição detectado
-          padroesTop.forEach(padrao => {
-            // Cria ID único baseado nas velas e horários
-            const sinalId = `${padrao.horario1}-${padrao.vela1}-${padrao.horario2}-${padrao.vela2}`;
+          if (velas.length < 3) return;
+          
+          // Função auxiliar para verificar se há 2 dígitos consecutivos iguais
+          function temRepeticao(str1, str2) {
+            const digitos1 = str1.split('');
+            const digitos2 = str2.split('');
             
-            // Verifica se já existe
-            const jaExiste = sinaisRepeticao.some(s => s.id === sinalId);
-            
-            if (!jaExiste) {
-              const sinal = {
-                id: sinalId,
-                vela1: padrao.vela1,
-                vela2: padrao.vela2,
-                horario1: padrao.horario1,
-                horario2: padrao.horario2,
-                detalhes: padrao.detalhes,
-                timestamp: Date.now(),
-                primeiraEntrada: null,
-                segundaEntrada: null,
-                status: 'aguardando' // aguardando, primeira_entrada, segunda_entrada, finalizado
-              };
-              
-              sinaisRepeticao.unshift(sinal);
-            }
-          });
-          
-          // Limita a 30 sinais mais recentes
-          sinaisRepeticao = sinaisRepeticao.slice(0, 30);
-          salvarSinaisRepeticaoNoStorage(sinaisRepeticao);
-        }
-
-        // NOVA FUNÇÃO: Atualizar resultados dos sinais de repetição
-        function atualizarResultadosSinaisRepeticao(velas) {
-          if (sinaisRepeticao.length === 0) return;
-          
-          let atualizado = false;
-          
-          sinaisRepeticao.forEach(sinal => {
-            // Se já finalizou, pula
-            if (sinal.status === 'finalizado') return;
-            
-            // Encontra o índice da vela mais recente do padrão (vela1 é a mais recente)
-            let indiceVela1 = -1;
-            for (let i = 0; i < velas.length; i++) {
-              const vela = velas[i];
-              const numero = parseFloat(vela.numero).toFixed(2) + 'x';
-              const horario = vela.horario;
-              
-              if (numero === sinal.vela1 && horario === sinal.horario1) {
-                indiceVela1 = i;
-                break;
+            for (let i = 0; i < digitos1.length - 1; i++) {
+              const par1 = digitos1[i] + digitos1[i + 1];
+              for (let j = 0; j < digitos2.length - 1; j++) {
+                const par2 = digitos2[j] + digitos2[j + 1];
+                if (par1 === par2) {
+                  return { encontrado: true, digitos: par1 };
+                }
               }
             }
-            
-            if (indiceVela1 === -1) return;
-            
-            // A 1ª entrada é a vela APÓS o sinal (índice menor = mais recente)
-            if (sinal.primeiraEntrada === null && indiceVela1 > 0) {
-              const velaPrimeiraEntrada = velas[indiceVela1 - 1];
-              const numPrimeiraEntrada = parseFloat(velaPrimeiraEntrada.numero);
-              
-              sinal.primeiraEntrada = {
-                numero: numPrimeiraEntrada.toFixed(2),
-                horario: velaPrimeiraEntrada.horario,
-                resultado: numPrimeiraEntrada >= 2 ? 'win' : 'loss'
-              };
-              
-              sinal.status = 'primeira_entrada';
-              atualizado = true;
-              
-              // Se ganhou na primeira, finaliza
-              if (sinal.primeiraEntrada.resultado === 'win') {
-                sinal.status = 'finalizado';
-              }
-            }
-            
-            // A 2ª entrada é a vela APÓS a primeira entrada (se perdeu na primeira)
-            if (sinal.primeiraEntrada && sinal.primeiraEntrada.resultado === 'loss' && sinal.segundaEntrada === null && indiceVela1 > 1) {
-              const velaSegundaEntrada = velas[indiceVela1 - 2];
-              const numSegundaEntrada = parseFloat(velaSegundaEntrada.numero);
-              
-              sinal.segundaEntrada = {
-                numero: numSegundaEntrada.toFixed(2),
-                horario: velaSegundaEntrada.horario,
-                resultado: numSegundaEntrada >= 2 ? 'win' : 'loss'
-              };
-              
-              sinal.status = 'finalizado';
-              atualizado = true;
-            }
-          });
-          
-          if (atualizado) {
-            salvarSinaisRepeticaoNoStorage(sinaisRepeticao);
+            return { encontrado: false };
           }
+          
+          // Percorre TODAS as velas da MAIS ANTIGA para a MAIS RECENTE
+          for (let i = velas.length - 1; i >= 2; i--) {
+            const vela1 = velas[i];     // Mais antiga
+            const vela2 = velas[i - 1]; // Meio
+            const vela3 = velas[i - 2]; // Mais recente das 3
+            
+            const num1Str = vela1.numero.toFixed(2).replace('.', '');
+            const num2Str = vela2.numero.toFixed(2).replace('.', '');
+            const num3Str = vela3.numero.toFixed(2).replace('.', '');
+            
+            // Verifica todas as combinações possíveis de repetição
+            const combinacoes = [
+              { v1: vela3, v2: vela2, s1: num3Str, s2: num2Str, idx1: i-2, idx2: i-1 }, // 3 e 2
+              { v1: vela3, v2: vela1, s1: num3Str, s2: num1Str, idx1: i-2, idx2: i },   // 3 e 1
+              { v1: vela2, v2: vela1, s1: num2Str, s2: num1Str, idx1: i-1, idx2: i }    // 2 e 1
+            ];
+            
+            for (const comb of combinacoes) {
+              const repeticao = temRepeticao(comb.s1, comb.s2);
+              
+              if (repeticao.encontrado) {
+                // Cria ID único
+                const sinalId = `${comb.v1.horario}-${comb.v1.numero.toFixed(2)}-${comb.v2.horario}-${comb.v2.numero.toFixed(2)}`;
+                
+                // Verifica se já existe
+                const jaExiste = sinaisRepeticao.some(s => s.id === sinalId);
+                
+                if (!jaExiste) {
+                  const sinal = {
+                    id: sinalId,
+                    vela1: comb.v1.numero.toFixed(2) + 'x',
+                    vela2: comb.v2.numero.toFixed(2) + 'x',
+                    horario1: comb.v1.horario,
+                    horario2: comb.v2.horario,
+                    detalhes: `Dígitos ${repeticao.digitos} repetidos`,
+                    indiceVela1: comb.idx1, // Índice da vela mais recente do padrão
+                    primeiraEntrada: null,
+                    segundaEntrada: null,
+                    status: 'aguardando'
+                  };
+                  
+                  // Verifica se há velas após o sinal para calcular entradas
+                  // A 1ª entrada é a vela APÓS a vela mais recente do padrão
+                  if (comb.idx1 > 0) {
+                    const velaPrimeiraEntrada = velas[comb.idx1 - 1];
+                    const numPrimeiraEntrada = parseFloat(velaPrimeiraEntrada.numero);
+                    
+                    sinal.primeiraEntrada = {
+                      numero: numPrimeiraEntrada.toFixed(2),
+                      horario: velaPrimeiraEntrada.horario,
+                      resultado: numPrimeiraEntrada >= 2 ? 'win' : 'loss'
+                    };
+                    
+                    sinal.status = 'primeira_entrada';
+                    
+                    // Se ganhou na primeira, finaliza
+                    if (sinal.primeiraEntrada.resultado === 'win') {
+                      sinal.status = 'finalizado';
+                    } else {
+                      // Se perdeu na primeira, verifica se há 2ª entrada
+                      if (comb.idx1 > 1) {
+                        const velaSegundaEntrada = velas[comb.idx1 - 2];
+                        const numSegundaEntrada = parseFloat(velaSegundaEntrada.numero);
+                        
+                        sinal.segundaEntrada = {
+                          numero: numSegundaEntrada.toFixed(2),
+                          horario: velaSegundaEntrada.horario,
+                          resultado: numSegundaEntrada >= 2 ? 'win' : 'loss'
+                        };
+                        
+                        sinal.status = 'finalizado';
+                      }
+                    }
+                  }
+                  
+                  sinaisRepeticao.push(sinal);
+                }
+              }
+            }
+          }
+          
+          // Inverte para mostrar os mais recentes primeiro
+          sinaisRepeticao.reverse();
+          
+          // Limita aos 50 sinais mais recentes
+          sinaisRepeticao = sinaisRepeticao.slice(0, 50);
         }
 
         // NOVA FUNÇÃO: Calcular estatísticas dos sinais
@@ -1727,11 +1718,8 @@
           const padroesTop = detectarPadroesTop(velas);
           renderizarPadroesTop(padroesTop);
           
-          // NOVO: Detecta sinais de repetição baseados nos padrões top
-          detectarSinaisRepeticao(velas, padroesTop);
-          
-          // NOVO: Atualiza resultados dos sinais de repetição
-          atualizarResultadosSinaisRepeticao(velas);
+          // NOVO: Detecta TODOS os sinais de repetição no histórico
+          detectarTodosSinaisRepeticao(velas);
           
           // NOVO: Renderiza sinais de repetição no painel
           renderizarSinaisRepeticao();
