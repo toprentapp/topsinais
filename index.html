@@ -1504,24 +1504,24 @@
             // Se já finalizou, pula
             if (sinal.status === 'finalizado') return;
             
-            // Encontra o índice da segunda vela do padrão (mais recente das duas)
-            let indiceVela2 = -1;
+            // Encontra o índice da vela mais recente do padrão (vela1 é a mais recente)
+            let indiceVela1 = -1;
             for (let i = 0; i < velas.length; i++) {
               const vela = velas[i];
               const numero = parseFloat(vela.numero).toFixed(2) + 'x';
               const horario = vela.horario;
               
-              if (numero === sinal.vela2 && horario === sinal.horario2) {
-                indiceVela2 = i;
+              if (numero === sinal.vela1 && horario === sinal.horario1) {
+                indiceVela1 = i;
                 break;
               }
             }
             
-            if (indiceVela2 === -1) return;
+            if (indiceVela1 === -1) return;
             
-            // Verifica primeira entrada (vela imediatamente após o sinal)
-            if (sinal.primeiraEntrada === null && indiceVela2 > 0) {
-              const velaPrimeiraEntrada = velas[indiceVela2 - 1];
+            // A 1ª entrada é a vela APÓS o sinal (índice menor = mais recente)
+            if (sinal.primeiraEntrada === null && indiceVela1 > 0) {
+              const velaPrimeiraEntrada = velas[indiceVela1 - 1];
               const numPrimeiraEntrada = parseFloat(velaPrimeiraEntrada.numero);
               
               sinal.primeiraEntrada = {
@@ -1539,9 +1539,9 @@
               }
             }
             
-            // Verifica segunda entrada (se perdeu na primeira)
-            if (sinal.primeiraEntrada && sinal.primeiraEntrada.resultado === 'loss' && sinal.segundaEntrada === null && indiceVela2 > 1) {
-              const velaSegundaEntrada = velas[indiceVela2 - 2];
+            // A 2ª entrada é a vela APÓS a primeira entrada (se perdeu na primeira)
+            if (sinal.primeiraEntrada && sinal.primeiraEntrada.resultado === 'loss' && sinal.segundaEntrada === null && indiceVela1 > 1) {
+              const velaSegundaEntrada = velas[indiceVela1 - 2];
               const numSegundaEntrada = parseFloat(velaSegundaEntrada.numero);
               
               sinal.segundaEntrada = {
