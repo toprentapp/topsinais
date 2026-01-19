@@ -326,6 +326,38 @@
           </button>
         </div>
 
+        <!-- Campo de Números Manuais para JetX -->
+        <div id="jetx-manual-numbers" class="hidden p-4 glass-effect border border-green-500/30 rounded-xl">
+          <div class="mb-3">
+            <label class="block mb-2 text-sm sm:text-base font-semibold text-gray-300">
+              🎯 Alertas Manuais JetX
+            </label>
+            <p class="text-xs text-gray-500 mb-3">Adicione números para receber alertas quando aparecerem</p>
+            
+            <div class="flex gap-2">
+              <input
+                type="number"
+                id="manual-number-input"
+                placeholder="Ex: 1.50"
+                step="0.01"
+                min="1.00"
+                max="999.99"
+                class="flex-1 glass-effect border border-green-500/30 text-white text-sm rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent p-3"
+              />
+              <button
+                id="add-manual-number-btn"
+                class="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                ➕ Adicionar
+              </button>
+            </div>
+          </div>
+          
+          <div id="manual-numbers-list" class="flex flex-wrap gap-2 min-h-[40px]">
+            <span class="text-gray-500 text-xs">Nenhum número adicionado</span>
+          </div>
+        </div>
+
         <div class="mt-4">
           <button
             id="reset-api-btn"
@@ -492,6 +524,131 @@
         let padroesDetectados = [];
         let padroesDecimais = []; // Array para armazenar padrões decimais mapeados
         let sinaisRepeticao = []; // Array para armazenar sinais de repetição
+        let manualNumbers = []; // Array para números manuais do JetX
+
+        // Funções para números manuais do JetX
+        function salvarNumerosManual() {
+          try {
+            localStorage.setItem('jetxManualNumbers', JSON.stringify(manualNumbers));
+          } catch (error) {
+            console.error('Erro ao salvar números manuais:', error);
+          }
+        }
+
+        function carregarNumerosManual() {
+          try {
+            const saved = localStorage.getItem('jetxManualNumbers');
+            return saved ? JSON.parse(saved) : [];
+          } catch (error) {
+            console.error('Erro ao carregar números manuais:', error);
+            return [];
+          }
+        }
+
+        function adicionarNumeroManual(numero) {
+          const numeroFormatado = parseFloat(numero).toFixed(2);
+          if (!manualNumbers.includes(numeroFormatado)) {
+            manualNumbers.push(numeroFormatado);
+            salvarNumerosManual();
+            renderizarNumerosManual();
+          }
+        }
+
+        function removerNumeroManual(numero) {
+          manualNumbers = manualNumbers.filter(n => n !== numero);
+          salvarNumerosManual();
+          renderizarNumerosManual();
+        }
+
+        function renderizarNumerosManual() {
+          const lista = document.getElementById('manual-numbers-list');
+          
+          if (manualNumbers.length === 0) {
+            lista.innerHTML = '<span class="text-gray-500 text-xs">Nenhum número adicionado</span>';
+            return;
+          }
+
+          lista.innerHTML = manualNumbers.map(numero => `
+            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-2 border-green-500/50 shadow-md">
+              <span class="font-bold text-green-300">${numero}x</span>
+              <button 
+                onclick="removerNumeroManual('${numero}')" 
+                class="text-red-400 hover:text-red-300 font-bold text-sm transition-colors"
+                title="Remover"
+              >
+                ✕
+              </button>
+            </span>
+          `).join('');
+        }
+
+        function verificarAlertasNumerosManual(velas) {
+          if (currentGame !== 'jetx' || manualNumbers.length === 0 || velas.length === 0) return;
+
+          const velaAtual = velas[0];
+          const numeroAtual = parseFloat(velaAtual.numero).toFixed(2);
+
+          if (manualNumbers.includes(numeroAtual)) {
+            // Mostra alerta visual e sonoro
+            mostrarAlertaNumeroManual(numeroAtual, velaAtual.horario);
+          }
+        }
+
+        function mostrarAlertaNumeroManual(numero, horario) {
+          // Cria notificação visual
+          const alerta = document.createElement('div');
+          alerta.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 z-[9999] animate-bounce';
+          alerta.innerHTML = `
+            <div class="glass-effect rounded-2xl p-6 border-4 border-yellow-500 shadow-2xl max-w-md">
+              <div class="text-center">
+                <div class="text-6xl mb-4">🎯</div>
+                <h3 class="text-2xl font-bold text-yellow-400 mb-2">NÚMERO ENCONTRADO!</h3>
+                <p class="text-xl font-bold text-white mb-2">${numero}x</p>
+                <p class="text-sm text-gray-400">${horario}</p>
+              </div>
+            </div>
+          `;
+          
+          document.body.appendChild(alerta);
+
+          // Toca som de alerta (beep)
+          try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+          } catch (error) {
+            console.log('Não foi possível tocar o som de alerta');
+          }
+
+          // Remove alerta após 5 segundos
+          setTimeout(() => {
+            alerta.remove();
+          }, 5000);
+        }
+
+        function toggleJetXManualSection() {
+          const section = document.getElementById('jetx-manual-numbers');
+          if (currentGame === 'jetx') {
+            section.classList.remove('hidden');
+          } else {
+            section.classList.add('hidden');
+          }
+        }
+
+        // Carrega números salvos ao iniciar
+        manualNumbers = carregarNumerosManual();
 
         // Event listener para mudança de jogo
         gameSelector.addEventListener("change", () => {
@@ -507,6 +664,9 @@
             document.title = "Top Sinais - JetX";
           }
           
+          // Mostra/esconde seção de números manuais
+          toggleJetXManualSection();
+          
           // Limpa dados e recarrega
           selectedNumber = null;
           padroesDetectados = [];
@@ -518,6 +678,39 @@
           
           fetchVelas();
         });
+
+        // Event listener para adicionar número manual
+        const addManualNumberBtn = document.getElementById('add-manual-number-btn');
+        const manualNumberInput = document.getElementById('manual-number-input');
+
+        if (addManualNumberBtn && manualNumberInput) {
+          addManualNumberBtn.addEventListener('click', () => {
+            const valor = manualNumberInput.value.trim();
+            if (valor && !isNaN(valor)) {
+              const numero = parseFloat(valor);
+              if (numero >= 1.00 && numero <= 999.99) {
+                adicionarNumeroManual(numero);
+                manualNumberInput.value = '';
+              } else {
+                alert('Por favor, insira um número entre 1.00 e 999.99');
+              }
+            }
+          });
+
+          // Permite adicionar com Enter
+          manualNumberInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              addManualNumberBtn.click();
+            }
+          });
+        }
+
+        // Torna função global para uso no HTML
+        window.removerNumeroManual = removerNumeroManual;
+
+        // Renderiza números salvos ao iniciar
+        renderizarNumerosManual();
+        toggleJetXManualSection();
 
         // Funções de LocalStorage
         function salvarPadroesNoStorage(padroes) {
@@ -1723,6 +1916,9 @@
           
           // NOVO: Renderiza sinais de repetição no painel
           renderizarSinaisRepeticao();
+          
+          // NOVO: Verifica alertas de números manuais (JetX)
+          verificarAlertasNumerosManual(velas);
           
           // Primeiro, calcular os intervalos percorrendo do mais antigo para o mais recente
           const velasComIntervalo = [];
