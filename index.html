@@ -414,19 +414,49 @@
         </div>
       </div>
 
-      <!-- Painel de Padrões Mapeados -->
+      <!-- Painel de Histórico de Estratégia de Repetição -->
       <div id="padroes-panel" class="padroes-panel glass-effect rounded-2xl p-4 lg:block">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <span>🎯</span>
-            <span>Padrões Mapeados</span>
+            <span>📊</span>
+            <span>Histórico de Repetições</span>
           </h3>
           <button id="minimize-padroes-btn" class="minimize-btn text-2xl text-gray-400 hover:text-white transition-colors" title="Minimizar/Expandir">
             ▼
           </button>
         </div>
-        <div id="padroes-list" class="space-y-3">
-          <p class="text-gray-400 text-sm">Nenhum padrão detectado ainda...</p>
+        
+        <!-- Estatísticas Gerais -->
+        <div id="stats-repeticao" class="mb-4 p-3 glass-effect rounded-xl border border-green-500/30">
+          <div class="grid grid-cols-2 gap-3 text-center">
+            <div>
+              <p class="text-xs text-gray-400 mb-1">1ª Entrada</p>
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-green-400 font-bold" id="win-primeira">0</span>
+                <span class="text-gray-500">/</span>
+                <span class="text-red-400 font-bold" id="loss-primeira">0</span>
+              </div>
+              <p class="text-xs text-yellow-400 font-semibold mt-1" id="taxa-primeira">0%</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 mb-1">2ª Entrada</p>
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-green-400 font-bold" id="win-segunda">0</span>
+                <span class="text-gray-500">/</span>
+                <span class="text-red-400 font-bold" id="loss-segunda">0</span>
+              </div>
+              <p class="text-xs text-yellow-400 font-semibold mt-1" id="taxa-segunda">0%</p>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-gray-700">
+            <p class="text-xs text-gray-400 text-center">Taxa Geral de Acerto</p>
+            <p class="text-lg font-bold text-center text-green-400" id="taxa-geral">0%</p>
+          </div>
+        </div>
+        
+        <!-- Lista de Sinais -->
+        <div id="padroes-list" class="space-y-3 max-h-[500px] overflow-y-auto">
+          <p class="text-gray-400 text-sm">Nenhum sinal de repetição detectado ainda...</p>
         </div>
       </div>
 
@@ -461,6 +491,7 @@
         let showIntervals = false;
         let padroesDetectados = [];
         let padroesDecimais = []; // Array para armazenar padrões decimais mapeados
+        let sinaisRepeticao = []; // Array para armazenar sinais de repetição
 
         // Event listener para mudança de jogo
         gameSelector.addEventListener("change", () => {
@@ -525,9 +556,29 @@
           }
         }
 
+        // Funções de LocalStorage para sinais de repetição
+        function salvarSinaisRepeticaoNoStorage(sinais) {
+          try {
+            localStorage.setItem('sinaisRepeticao', JSON.stringify(sinais));
+          } catch (error) {
+            console.error('Erro ao salvar sinais de repetição no localStorage:', error);
+          }
+        }
+
+        function carregarSinaisRepeticaoDoStorage() {
+          try {
+            const sinais = localStorage.getItem('sinaisRepeticao');
+            return sinais ? JSON.parse(sinais) : [];
+          } catch (error) {
+            console.error('Erro ao carregar sinais de repetição do localStorage:', error);
+            return [];
+          }
+        }
+
         // Carregar padrões salvos ao iniciar
         padroesDetectados = carregarPadroesDoStorage();
         padroesDecimais = carregarPadroesDecimaisDoStorage();
+        sinaisRepeticao = carregarSinaisRepeticaoDoStorage();
 
         // Função para extrair decimal de um número
         function extrairDecimal(numero) {
@@ -1099,7 +1150,9 @@
         function convertApiDataToVelas(apiData) {
           if (!apiData || !Array.isArray(apiData)) return [];
           
-          return apiData.map((item, index) => {
+          const velasMap = new Map();
+          
+          apiData.forEach((item, index) => {
             const numero = parseFloat(item.value || item.numero || 0);
             let cor = 'cinza';
             
@@ -1112,20 +1165,38 @@
               cor = 'azul';
             }
             
-            // Gera um horário fictício baseado no timestamp atual menos o índice
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - index);
-            const horario = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            // Usa o horário do item se disponível, senão gera um fictício
+            let horario;
+            if (item.horario) {
+              horario = item.horario;
+            } else if (item.timestamp) {
+              const date = new Date(item.timestamp);
+              horario = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+            } else {
+              // Gera um horário fictício baseado no timestamp atual menos o índice
+              const now = new Date();
+              now.setMinutes(now.getMinutes() - index);
+              horario = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            }
             
-            return {
-              numero: numero,
-              horario: horario,
-              cor: cor,
-              value: item.value,
-              text: item.text,
-              category: item.category
-            };
-          }).reverse(); // Inverte para mostrar as mais recentes primeiro
+            // Cria uma chave única baseada no horário e número (arredondado para 2 casas)
+            const chave = `${horario}_${numero.toFixed(2)}`;
+            
+            // Só adiciona se não existir (remove duplicatas)
+            if (!velasMap.has(chave)) {
+              velasMap.set(chave, {
+                numero: numero,
+                horario: horario,
+                cor: cor,
+                value: item.value,
+                text: item.text,
+                category: item.category
+              });
+            }
+          });
+          
+          // Converte o Map de volta para array e inverte para mostrar as mais recentes primeiro
+          return Array.from(velasMap.values()).reverse();
         }
 
         async function fetchVelas() {
@@ -1388,6 +1459,251 @@
           }).join('');
         }
 
+        // NOVA FUNÇÃO: Detectar sinais de repetição
+        function detectarSinaisRepeticao(velas, padroesTop) {
+          if (padroesTop.length === 0) return;
+          
+          // Para cada padrão de repetição detectado
+          padroesTop.forEach(padrao => {
+            // Cria ID único baseado nas velas e horários
+            const sinalId = `${padrao.horario1}-${padrao.vela1}-${padrao.horario2}-${padrao.vela2}`;
+            
+            // Verifica se já existe
+            const jaExiste = sinaisRepeticao.some(s => s.id === sinalId);
+            
+            if (!jaExiste) {
+              const sinal = {
+                id: sinalId,
+                vela1: padrao.vela1,
+                vela2: padrao.vela2,
+                horario1: padrao.horario1,
+                horario2: padrao.horario2,
+                detalhes: padrao.detalhes,
+                timestamp: Date.now(),
+                primeiraEntrada: null,
+                segundaEntrada: null,
+                status: 'aguardando' // aguardando, primeira_entrada, segunda_entrada, finalizado
+              };
+              
+              sinaisRepeticao.unshift(sinal);
+            }
+          });
+          
+          // Limita a 30 sinais mais recentes
+          sinaisRepeticao = sinaisRepeticao.slice(0, 30);
+          salvarSinaisRepeticaoNoStorage(sinaisRepeticao);
+        }
+
+        // NOVA FUNÇÃO: Atualizar resultados dos sinais de repetição
+        function atualizarResultadosSinaisRepeticao(velas) {
+          if (sinaisRepeticao.length === 0) return;
+          
+          let atualizado = false;
+          
+          sinaisRepeticao.forEach(sinal => {
+            // Se já finalizou, pula
+            if (sinal.status === 'finalizado') return;
+            
+            // Encontra o índice da segunda vela do padrão (mais recente das duas)
+            let indiceVela2 = -1;
+            for (let i = 0; i < velas.length; i++) {
+              const vela = velas[i];
+              const numero = parseFloat(vela.numero).toFixed(2) + 'x';
+              const horario = vela.horario;
+              
+              if (numero === sinal.vela2 && horario === sinal.horario2) {
+                indiceVela2 = i;
+                break;
+              }
+            }
+            
+            if (indiceVela2 === -1) return;
+            
+            // Verifica primeira entrada (vela imediatamente após o sinal)
+            if (sinal.primeiraEntrada === null && indiceVela2 > 0) {
+              const velaPrimeiraEntrada = velas[indiceVela2 - 1];
+              const numPrimeiraEntrada = parseFloat(velaPrimeiraEntrada.numero);
+              
+              sinal.primeiraEntrada = {
+                numero: numPrimeiraEntrada.toFixed(2),
+                horario: velaPrimeiraEntrada.horario,
+                resultado: numPrimeiraEntrada >= 2 ? 'win' : 'loss'
+              };
+              
+              sinal.status = 'primeira_entrada';
+              atualizado = true;
+              
+              // Se ganhou na primeira, finaliza
+              if (sinal.primeiraEntrada.resultado === 'win') {
+                sinal.status = 'finalizado';
+              }
+            }
+            
+            // Verifica segunda entrada (se perdeu na primeira)
+            if (sinal.primeiraEntrada && sinal.primeiraEntrada.resultado === 'loss' && sinal.segundaEntrada === null && indiceVela2 > 1) {
+              const velaSegundaEntrada = velas[indiceVela2 - 2];
+              const numSegundaEntrada = parseFloat(velaSegundaEntrada.numero);
+              
+              sinal.segundaEntrada = {
+                numero: numSegundaEntrada.toFixed(2),
+                horario: velaSegundaEntrada.horario,
+                resultado: numSegundaEntrada >= 2 ? 'win' : 'loss'
+              };
+              
+              sinal.status = 'finalizado';
+              atualizado = true;
+            }
+          });
+          
+          if (atualizado) {
+            salvarSinaisRepeticaoNoStorage(sinaisRepeticao);
+          }
+        }
+
+        // NOVA FUNÇÃO: Calcular estatísticas dos sinais
+        function calcularEstatisticasSinais() {
+          let winPrimeira = 0;
+          let lossPrimeira = 0;
+          let winSegunda = 0;
+          let lossSegunda = 0;
+          
+          sinaisRepeticao.forEach(sinal => {
+            if (sinal.primeiraEntrada) {
+              if (sinal.primeiraEntrada.resultado === 'win') {
+                winPrimeira++;
+              } else {
+                lossPrimeira++;
+              }
+            }
+            
+            if (sinal.segundaEntrada) {
+              if (sinal.segundaEntrada.resultado === 'win') {
+                winSegunda++;
+              } else {
+                lossSegunda++;
+              }
+            }
+          });
+          
+          const totalPrimeira = winPrimeira + lossPrimeira;
+          const totalSegunda = winSegunda + lossSegunda;
+          const totalGeral = winPrimeira + winSegunda;
+          const totalTentativas = totalPrimeira + lossSegunda;
+          
+          const taxaPrimeira = totalPrimeira > 0 ? (winPrimeira / totalPrimeira * 100).toFixed(1) : 0;
+          const taxaSegunda = totalSegunda > 0 ? (winSegunda / totalSegunda * 100).toFixed(1) : 0;
+          const taxaGeral = totalTentativas > 0 ? (totalGeral / totalTentativas * 100).toFixed(1) : 0;
+          
+          return {
+            winPrimeira,
+            lossPrimeira,
+            winSegunda,
+            lossSegunda,
+            taxaPrimeira,
+            taxaSegunda,
+            taxaGeral
+          };
+        }
+
+        // NOVA FUNÇÃO: Renderizar estatísticas e sinais de repetição
+        function renderizarSinaisRepeticao() {
+          const stats = calcularEstatisticasSinais();
+          
+          // Atualiza estatísticas
+          document.getElementById('win-primeira').textContent = stats.winPrimeira;
+          document.getElementById('loss-primeira').textContent = stats.lossPrimeira;
+          document.getElementById('taxa-primeira').textContent = stats.taxaPrimeira + '%';
+          
+          document.getElementById('win-segunda').textContent = stats.winSegunda;
+          document.getElementById('loss-segunda').textContent = stats.lossSegunda;
+          document.getElementById('taxa-segunda').textContent = stats.taxaSegunda + '%';
+          
+          document.getElementById('taxa-geral').textContent = stats.taxaGeral + '%';
+          
+          // Renderiza lista de sinais
+          if (sinaisRepeticao.length === 0) {
+            padroesList.innerHTML = '<p class="text-gray-400 text-sm">Nenhum sinal de repetição detectado ainda...</p>';
+            return;
+          }
+          
+          padroesList.innerHTML = sinaisRepeticao.map(sinal => {
+            let statusBadge = '';
+            let statusClass = '';
+            
+            if (sinal.status === 'finalizado') {
+              const ganhou = (sinal.primeiraEntrada && sinal.primeiraEntrada.resultado === 'win') || 
+                            (sinal.segundaEntrada && sinal.segundaEntrada.resultado === 'win');
+              
+              if (ganhou) {
+                statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-green-500 text-white rounded">✓ WIN</span>';
+                statusClass = 'border-green-500/30';
+              } else {
+                statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-red-500 text-white rounded">✗ LOSS</span>';
+                statusClass = 'border-red-500/30';
+              }
+            } else if (sinal.status === 'primeira_entrada') {
+              statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-yellow-500 text-black rounded">⏳ Aguardando 2ª</span>';
+              statusClass = 'border-yellow-500/30';
+            } else {
+              statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-blue-500 text-white rounded">🎯 SINAL ATIVO</span>';
+              statusClass = 'border-blue-500/30 animate-pulse';
+            }
+            
+            return `
+              <div class="padrao-card glass-effect rounded-xl p-3 border ${statusClass}">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-gray-400">Sinal de Repetição</span>
+                  ${statusBadge}
+                </div>
+                
+                <div class="space-y-2 mb-3">
+                  <div class="flex items-center gap-2 text-sm">
+                    <span class="text-gray-400">Padrão:</span>
+                    <span class="font-bold text-yellow-300">${sinal.vela1}</span>
+                    <span class="text-gray-500">&</span>
+                    <span class="font-bold text-yellow-300">${sinal.vela2}</span>
+                  </div>
+                  <div class="text-xs text-gray-500">${sinal.detalhes}</div>
+                </div>
+                
+                ${sinal.primeiraEntrada ? `
+                  <div class="mt-2 p-2 rounded-lg ${sinal.primeiraEntrada.resultado === 'win' ? 'bg-green-500/20' : 'bg-red-500/20'}">
+                    <div class="flex items-center justify-between text-xs">
+                      <span class="text-gray-300">1ª Entrada:</span>
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold ${sinal.primeiraEntrada.resultado === 'win' ? 'text-green-400' : 'text-red-400'}">
+                          ${sinal.primeiraEntrada.numero}x
+                        </span>
+                        <span class="text-gray-500">${sinal.primeiraEntrada.horario}</span>
+                        <span class="font-bold ${sinal.primeiraEntrada.resultado === 'win' ? 'text-green-400' : 'text-red-400'}">
+                          ${sinal.primeiraEntrada.resultado === 'win' ? '✓' : '✗'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ` : ''}
+                
+                ${sinal.segundaEntrada ? `
+                  <div class="mt-2 p-2 rounded-lg ${sinal.segundaEntrada.resultado === 'win' ? 'bg-green-500/20' : 'bg-red-500/20'}">
+                    <div class="flex items-center justify-between text-xs">
+                      <span class="text-gray-300">2ª Entrada:</span>
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold ${sinal.segundaEntrada.resultado === 'win' ? 'text-green-400' : 'text-red-400'}">
+                          ${sinal.segundaEntrada.numero}x
+                        </span>
+                        <span class="text-gray-500">${sinal.segundaEntrada.horario}</span>
+                        <span class="font-bold ${sinal.segundaEntrada.resultado === 'win' ? 'text-green-400' : 'text-red-400'}">
+                          ${sinal.segundaEntrada.resultado === 'win' ? '✓' : '✗'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        }
+
         function renderVelas(velas) {
           loadingElement.classList.add('hidden');
           historicoContainer.innerHTML = "";
@@ -1411,14 +1727,14 @@
           const padroesTop = detectarPadroesTop(velas);
           renderizarPadroesTop(padroesTop);
           
-          // Detecta novos padrões
-          detectarPadroes(velas);
+          // NOVO: Detecta sinais de repetição baseados nos padrões top
+          detectarSinaisRepeticao(velas, padroesTop);
           
-          // Atualiza resultados dos padrões existentes
-          atualizarResultadosPadroes(velas);
+          // NOVO: Atualiza resultados dos sinais de repetição
+          atualizarResultadosSinaisRepeticao(velas);
           
-          // Renderiza padrões no painel
-          renderizarPadroes(velas);
+          // NOVO: Renderiza sinais de repetição no painel
+          renderizarSinaisRepeticao();
           
           // Primeiro, calcular os intervalos percorrendo do mais antigo para o mais recente
           const velasComIntervalo = [];
