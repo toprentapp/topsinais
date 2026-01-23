@@ -358,6 +358,38 @@
           </div>
         </div>
 
+        <!-- Campo de Números Manuais para Aviator -->
+        <div id="aviator-manual-numbers" class="hidden p-4 glass-effect border border-blue-500/30 rounded-xl">
+          <div class="mb-3">
+            <label class="block mb-2 text-sm sm:text-base font-semibold text-gray-300">
+              🎯 Alertas Manuais Aviator
+            </label>
+            <p class="text-xs text-gray-500 mb-3">Adicione números para receber alertas quando aparecerem</p>
+            
+            <div class="flex gap-2">
+              <input
+                type="number"
+                id="aviator-manual-number-input"
+                placeholder="Ex: 2.50"
+                step="0.01"
+                min="1.00"
+                max="999.99"
+                class="flex-1 glass-effect border border-blue-500/30 text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent p-3"
+              />
+              <button
+                id="aviator-add-manual-number-btn"
+                class="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                ➕ Adicionar
+              </button>
+            </div>
+          </div>
+          
+          <div id="aviator-manual-numbers-list" class="flex flex-wrap gap-2 min-h-[40px]">
+            <span class="text-gray-500 text-xs">Nenhum número adicionado</span>
+          </div>
+        </div>
+
         <div class="mt-4">
           <button
             id="reset-api-btn"
@@ -525,6 +557,7 @@
         let padroesDecimais = []; // Array para armazenar padrões decimais mapeados
         let sinaisRepeticao = []; // Array para armazenar sinais de repetição
         let manualNumbers = []; // Array para números manuais do JetX
+        let aviatorManualNumbers = []; // Array para números manuais do Aviator
 
         // Funções para números manuais do JetX
         function salvarNumerosManual() {
@@ -582,19 +615,84 @@
           `).join('');
         }
 
+        // Funções para números manuais do Aviator
+        function salvarNumerosManualAviator() {
+          try {
+            localStorage.setItem('aviatorManualNumbers', JSON.stringify(aviatorManualNumbers));
+          } catch (error) {
+            console.error('Erro ao salvar números manuais do Aviator:', error);
+          }
+        }
+
+        function carregarNumerosManualAviator() {
+          try {
+            const saved = localStorage.getItem('aviatorManualNumbers');
+            return saved ? JSON.parse(saved) : [];
+          } catch (error) {
+            console.error('Erro ao carregar números manuais do Aviator:', error);
+            return [];
+          }
+        }
+
+        function adicionarNumeroManualAviator(numero) {
+          const numeroFormatado = parseFloat(numero).toFixed(2);
+          if (!aviatorManualNumbers.includes(numeroFormatado)) {
+            aviatorManualNumbers.push(numeroFormatado);
+            salvarNumerosManualAviator();
+            renderizarNumerosManualAviator();
+          }
+        }
+
+        function removerNumeroManualAviator(numero) {
+          aviatorManualNumbers = aviatorManualNumbers.filter(n => n !== numero);
+          salvarNumerosManualAviator();
+          renderizarNumerosManualAviator();
+        }
+
+        function renderizarNumerosManualAviator() {
+          const lista = document.getElementById('aviator-manual-numbers-list');
+          
+          if (aviatorManualNumbers.length === 0) {
+            lista.innerHTML = '<span class="text-gray-500 text-xs">Nenhum número adicionado</span>';
+            return;
+          }
+
+          lista.innerHTML = aviatorManualNumbers.map(numero => `
+            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-2 border-blue-500/50 shadow-md">
+              <span class="font-bold text-blue-300">${numero}x</span>
+              <button 
+                onclick="removerNumeroManualAviator('${numero}')" 
+                class="text-red-400 hover:text-red-300 font-bold text-sm transition-colors"
+                title="Remover"
+              >
+                ✕
+              </button>
+            </span>
+          `).join('');
+        }
+
         function verificarAlertasNumerosManual(velas) {
-          if (currentGame !== 'jetx' || manualNumbers.length === 0 || velas.length === 0) return;
+          if (velas.length === 0) return;
 
           const velaAtual = velas[0];
           const numeroAtual = parseFloat(velaAtual.numero).toFixed(2);
 
-          if (manualNumbers.includes(numeroAtual)) {
-            // Mostra alerta visual e sonoro
-            mostrarAlertaNumeroManual(numeroAtual, velaAtual.horario);
+          // Verifica alertas do JetX
+          if (currentGame === 'jetx' && manualNumbers.length > 0) {
+            if (manualNumbers.includes(numeroAtual)) {
+              mostrarAlertaNumeroManual(numeroAtual, velaAtual.horario, 'JetX');
+            }
+          }
+
+          // Verifica alertas do Aviator
+          if (currentGame === 'aviator' && aviatorManualNumbers.length > 0) {
+            if (aviatorManualNumbers.includes(numeroAtual)) {
+              mostrarAlertaNumeroManual(numeroAtual, velaAtual.horario, 'Aviator');
+            }
           }
         }
 
-        function mostrarAlertaNumeroManual(numero, horario) {
+        function mostrarAlertaNumeroManual(numero, horario, jogo) {
           // Cria notificação visual
           const alerta = document.createElement('div');
           alerta.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 z-[9999] animate-bounce';
@@ -603,6 +701,7 @@
               <div class="text-center">
                 <div class="text-6xl mb-4">🎯</div>
                 <h3 class="text-2xl font-bold text-yellow-400 mb-2">NÚMERO ENCONTRADO!</h3>
+                <p class="text-lg font-semibold text-gray-300 mb-2">${jogo}</p>
                 <p class="text-xl font-bold text-white mb-2">${numero}x</p>
                 <p class="text-sm text-gray-400">${horario}</p>
               </div>
@@ -638,17 +737,22 @@
           }, 5000);
         }
 
-        function toggleJetXManualSection() {
-          const section = document.getElementById('jetx-manual-numbers');
+        function toggleManualSections() {
+          const jetxSection = document.getElementById('jetx-manual-numbers');
+          const aviatorSection = document.getElementById('aviator-manual-numbers');
+          
           if (currentGame === 'jetx') {
-            section.classList.remove('hidden');
-          } else {
-            section.classList.add('hidden');
+            jetxSection.classList.remove('hidden');
+            aviatorSection.classList.add('hidden');
+          } else if (currentGame === 'aviator') {
+            jetxSection.classList.add('hidden');
+            aviatorSection.classList.remove('hidden');
           }
         }
 
         // Carrega números salvos ao iniciar
         manualNumbers = carregarNumerosManual();
+        aviatorManualNumbers = carregarNumerosManualAviator();
 
         // Event listener para mudança de jogo
         gameSelector.addEventListener("change", () => {
@@ -665,7 +769,7 @@
           }
           
           // Mostra/esconde seção de números manuais
-          toggleJetXManualSection();
+          toggleManualSections();
           
           // Limpa dados e recarrega
           selectedNumber = null;
@@ -679,7 +783,7 @@
           fetchVelas();
         });
 
-        // Event listener para adicionar número manual
+        // Event listener para adicionar número manual do JetX
         const addManualNumberBtn = document.getElementById('add-manual-number-btn');
         const manualNumberInput = document.getElementById('manual-number-input');
 
@@ -705,12 +809,40 @@
           });
         }
 
-        // Torna função global para uso no HTML
+        // Event listener para adicionar número manual do Aviator
+        const aviatorAddManualNumberBtn = document.getElementById('aviator-add-manual-number-btn');
+        const aviatorManualNumberInput = document.getElementById('aviator-manual-number-input');
+
+        if (aviatorAddManualNumberBtn && aviatorManualNumberInput) {
+          aviatorAddManualNumberBtn.addEventListener('click', () => {
+            const valor = aviatorManualNumberInput.value.trim();
+            if (valor && !isNaN(valor)) {
+              const numero = parseFloat(valor);
+              if (numero >= 1.00 && numero <= 999.99) {
+                adicionarNumeroManualAviator(numero);
+                aviatorManualNumberInput.value = '';
+              } else {
+                alert('Por favor, insira um número entre 1.00 e 999.99');
+              }
+            }
+          });
+
+          // Permite adicionar com Enter
+          aviatorManualNumberInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              aviatorAddManualNumberBtn.click();
+            }
+          });
+        }
+
+        // Torna funções globais para uso no HTML
         window.removerNumeroManual = removerNumeroManual;
+        window.removerNumeroManualAviator = removerNumeroManualAviator;
 
         // Renderiza números salvos ao iniciar
         renderizarNumerosManual();
-        toggleJetXManualSection();
+        renderizarNumerosManualAviator();
+        toggleManualSections();
 
         // Funções de LocalStorage
         function salvarPadroesNoStorage(padroes) {
