@@ -276,9 +276,22 @@
             <span class="text-2xl">🏠</span>
             <div>
               <p class="text-sm font-semibold text-gray-300">Casa Conectada</p>
-              <p class="text-lg font-bold text-green-400">Esportiva.bet</p>
+              <p id="connected-house-name" class="text-lg font-bold text-green-400">Esportiva.bet</p>
             </div>
           </div>
+        </div>
+
+        <div>
+          <label for="house-selector" class="block mb-3 text-sm sm:text-base font-semibold text-gray-300">
+            🏠 Selecionar Casa
+          </label>
+          <select
+            id="house-selector"
+            class="custom-select glass-effect border border-emerald-500/30 text-white text-sm sm:text-base rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent block w-full p-3 sm:p-4 transition-all cursor-pointer"
+          >
+            <option value="esportiva">Esportiva.bet</option>
+            <option value="bravobet">BravoBet</option>
+          </select>
         </div>
 
         <div>
@@ -290,7 +303,7 @@
             class="custom-select glass-effect border border-green-500/30 text-white text-sm sm:text-base rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent block w-full p-3 sm:p-4 transition-all cursor-pointer"
           >
             <option value="aviator">✈️ Aviator</option>
-            <option value="jetx">🚀 JetX</option>
+            <option id="game-option-jetx" value="jetx">🚀 JetX</option>
           </select>
         </div>
         
@@ -539,10 +552,14 @@
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const API_BASE_URL = "https://aviator.pixios.com.br/velas";
+        let currentHouse = "esportiva";
         let currentGame = "aviator"; // Jogo padrão
         let API_URL = `${API_BASE_URL}/aviator`;
 
+        const houseSelector = document.getElementById("house-selector");
+        const connectedHouseName = document.getElementById("connected-house-name");
         const gameSelector = document.getElementById("game-selector");
+        const gameOptionJetX = document.getElementById("game-option-jetx");
         const gameTitle = document.getElementById("game-title");
         const colorFilter = document.getElementById("color-filter");
         const intervalToggle = document.getElementById("interval-toggle");
@@ -558,6 +575,33 @@
         let sinaisRepeticao = []; // Array para armazenar sinais de repetição
         let manualNumbers = []; // Array para números manuais do JetX
         let aviatorManualNumbers = []; // Array para números manuais do Aviator
+
+        function getApiUrlBySelection() {
+          if (currentHouse === "bravobet") {
+            return `${API_BASE_URL}/bravobet-aviator`;
+          }
+          return `${API_BASE_URL}/${currentGame}`;
+        }
+
+        function applyHouseRules() {
+          const isBravoBet = currentHouse === "bravobet";
+
+          connectedHouseName.textContent = isBravoBet ? "BravoBet" : "Esportiva.bet";
+
+          if (isBravoBet) {
+            gameOptionJetX.disabled = true;
+            gameOptionJetX.hidden = true;
+            if (currentGame === "jetx") {
+              currentGame = "aviator";
+              gameSelector.value = "aviator";
+            }
+          } else {
+            gameOptionJetX.disabled = false;
+            gameOptionJetX.hidden = false;
+          }
+
+          API_URL = getApiUrlBySelection();
+        }
 
         // Funções para números manuais do JetX
         function salvarNumerosManual() {
@@ -757,7 +801,7 @@
         // Event listener para mudança de jogo
         gameSelector.addEventListener("change", () => {
           currentGame = gameSelector.value;
-          API_URL = `${API_BASE_URL}/${currentGame}`;
+          API_URL = getApiUrlBySelection();
           
           // Atualiza o título
           if (currentGame === "aviator") {
@@ -780,6 +824,23 @@
           console.log(`🎮 Jogo alterado para: ${currentGame.toUpperCase()}`);
           console.log(`📡 Nova URL da API: ${API_URL}`);
           
+          fetchVelas();
+        });
+
+        // Event listener para mudança de casa
+        houseSelector.addEventListener("change", () => {
+          currentHouse = houseSelector.value;
+          applyHouseRules();
+          toggleManualSections();
+
+          selectedNumber = null;
+          padroesDetectados = [];
+          padroesDecimais = [];
+          historicoContainer.innerHTML = "";
+
+          console.log(`🏠 Casa alterada para: ${currentHouse.toUpperCase()}`);
+          console.log(`📡 Nova URL da API: ${API_URL}`);
+
           fetchVelas();
         });
 
@@ -843,6 +904,7 @@
         renderizarNumerosManual();
         renderizarNumerosManualAviator();
         toggleManualSections();
+        applyHouseRules();
 
         // Funções de LocalStorage
         function salvarPadroesNoStorage(padroes) {
