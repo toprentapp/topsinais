@@ -291,6 +291,7 @@
           >
             <option value="esportiva">Esportiva.bet</option>
             <option value="bravobet">BravoBet</option>
+            <option value="apostatudo">ApostaTudo</option>
           </select>
         </div>
 
@@ -580,15 +581,26 @@
           if (currentHouse === "bravobet") {
             return `${API_BASE_URL}/bravobet-aviator`;
           }
+          if (currentHouse === "apostatudo") {
+            return `${API_BASE_URL}/apostatudo-aviator`;
+          }
           return `${API_BASE_URL}/${currentGame}`;
         }
 
         function applyHouseRules() {
           const isBravoBet = currentHouse === "bravobet";
-
-          connectedHouseName.textContent = isBravoBet ? "BravoBet" : "Esportiva.bet";
+          const isApostaTudo = currentHouse === "apostatudo";
+          const isTipMinerHouse = isBravoBet || isApostaTudo;
 
           if (isBravoBet) {
+            connectedHouseName.textContent = "BravoBet";
+          } else if (isApostaTudo) {
+            connectedHouseName.textContent = "ApostaTudo";
+          } else {
+            connectedHouseName.textContent = "Esportiva.bet";
+          }
+
+          if (isTipMinerHouse) {
             gameOptionJetX.disabled = true;
             gameOptionJetX.hidden = true;
             if (currentGame === "jetx") {
