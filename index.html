@@ -292,6 +292,7 @@
             <option value="esportiva">Esportiva.bet</option>
             <option value="bravobet">BravoBet</option>
             <option value="apostatudo">ApostaTudo</option>
+            <option value="apostax">Apostax.bet</option>
           </select>
         </div>
 
@@ -410,7 +411,7 @@
             class="w-full px-4 py-3 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <span>🔄</span>
-            <span>Resetar Navegador API</span>
+            <span>Resetar conexão API</span>
           </button>
         </div>
       </div>
@@ -584,29 +585,44 @@
           if (currentHouse === "apostatudo") {
             return `${API_BASE_URL}/apostatudo-aviator`;
           }
+          if (currentHouse === "apostax") {
+            return `${API_BASE_URL}/apostax-jetx`;
+          }
           return `${API_BASE_URL}/${currentGame}`;
         }
 
         function applyHouseRules() {
-          const isBravoBet = currentHouse === "bravobet";
+          const isBravoBet   = currentHouse === "bravobet";
           const isApostaTudo = currentHouse === "apostatudo";
+          const isApostax    = currentHouse === "apostax";
           const isTipMinerHouse = isBravoBet || isApostaTudo;
 
           if (isBravoBet) {
             connectedHouseName.textContent = "BravoBet";
           } else if (isApostaTudo) {
             connectedHouseName.textContent = "ApostaTudo";
+          } else if (isApostax) {
+            connectedHouseName.textContent = "Apostax.bet";
           } else {
             connectedHouseName.textContent = "Esportiva.bet";
           }
 
           if (isTipMinerHouse) {
+            // BravoBet e ApostaTudo só têm Aviator
             gameOptionJetX.disabled = true;
             gameOptionJetX.hidden = true;
             if (currentGame === "jetx") {
               currentGame = "aviator";
               gameSelector.value = "aviator";
             }
+          } else if (isApostax) {
+            // Apostax só tem JetX
+            gameOptionJetX.disabled = false;
+            gameOptionJetX.hidden = false;
+            currentGame = "jetx";
+            gameSelector.value = "jetx";
+            gameTitle.textContent = "JetX";
+            document.title = "Top Sinais - JetX";
           } else {
             gameOptionJetX.disabled = false;
             gameOptionJetX.hidden = false;
@@ -2313,32 +2329,36 @@
           return `${day}/${month}/${year} - ${hrs}:${mins}`;
         }
 
-        // Botão de resetar API
+        // Botão de resetar conexão API
         const resetApiBtn = document.getElementById("reset-api-btn");
         if (resetApiBtn) {
           resetApiBtn.addEventListener("click", async () => {
             const originalText = resetApiBtn.innerHTML;
             resetApiBtn.disabled = true;
             resetApiBtn.innerHTML = '<span class="inline-block animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></span><span>Resetando...</span>';
-            
+
+            // Define endpoint de reset conforme a casa selecionada
+            const isApostax = currentHouse === "apostax";
+            const resetUrl  = isApostax
+              ? `https://aviator.pixios.com.br/reiniciar`   // server.js JetX (POST /reiniciar)
+              : `https://aviator.pixios.com.br/start`;       // servidor aviator existente
+
             try {
-              const response = await fetch(`https://aviator.pixios.com.br/start`);
+              const response = await fetch(resetUrl, { method: isApostax ? "POST" : "GET" });
               const data = await response.json();
-              
-              if (data.success) {
-                console.log("✅ Navegador reiniciado com sucesso");
-                historicoContainer.innerHTML = '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-green-400">✅ Navegador reiniciado! Aguardando novos dados...</p></div>';
-                
-                // Aguarda 5 segundos e recarrega
-                setTimeout(() => {
-                  fetchVelas();
-                }, 5000);
+
+              // Apostax retorna { ok: true } | outros retornam { success: true }
+              if (data.ok || data.success) {
+                console.log("✅ Conexão reiniciada com sucesso");
+                historicoContainer.innerHTML = '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-green-400">✅ Conexão reiniciada! Aguardando novos dados...</p></div>';
+
+                setTimeout(() => { fetchVelas(); }, isApostax ? 3000 : 5000);
               } else {
-                console.error("❌ Erro ao reiniciar:", data.error);
-                alert("Erro ao reiniciar navegador: " + (data.error || "Erro desconhecido"));
+                console.error("❌ Erro ao reiniciar:", data.error || data.msg);
+                alert("Erro ao reiniciar conexão: " + (data.error || data.msg || "Erro desconhecido"));
               }
             } catch (error) {
-              console.error("❌ Erro ao chamar endpoint de restart:", error);
+              console.error("❌ Erro ao chamar endpoint de reset:", error);
               alert("Erro ao conectar com o servidor. Verifique se está rodando.");
             } finally {
               resetApiBtn.disabled = false;
