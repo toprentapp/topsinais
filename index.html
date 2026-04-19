@@ -553,10 +553,11 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        const API_BASE_URL = "https://aviator.pixios.com.br/velas";
+        const API_BASE_URL   = "https://aviator.pixios.com.br/velas";
+        const APOSTAX_API_URL = "https://aviator.pixios.com.br/velas/apostax-jetx"; // porta 4000
         let currentHouse = "esportiva";
         let currentGame = "aviator"; // Jogo padrão
-        let API_URL = `${API_BASE_URL}/aviator`;
+        let API_URL = `${API_BASE_URL}`;
 
         const houseSelector = document.getElementById("house-selector");
         const connectedHouseName = document.getElementById("connected-house-name");
@@ -586,7 +587,7 @@
             return `${API_BASE_URL}/apostatudo-aviator`;
           }
           if (currentHouse === "apostax") {
-            return `${API_BASE_URL}/apostax-jetx`;
+            return APOSTAX_API_URL;
           }
           return `${API_BASE_URL}/${currentGame}`;
         }
@@ -1542,17 +1543,53 @@
           }).join('');
         }
 
-        // Função para converter dados da API para o formato esperado
+        // Converte resposta do servidor Apostax/JetX
+        // Formato: { ok, total, resultados: [{ coeficiente, timestamp, resultado, spinNumber }] }
+        function convertApostaxToVelas(resultados) {
+          if (!resultados || !Array.isArray(resultados)) return [];
+
+          return resultados.map(item => {
+            const numero = parseFloat(item.coeficiente);
+
+            // Cores baseadas no valor do coeficiente (mesmo padrão do Aviator)
+            // >= 10 → rosa | >= 2 e < 10 → roxa | < 2 → azul
+            let cor;
+            if (numero >= 10) {
+              cor = 'rosa';
+            } else if (numero >= 2) {
+              cor = 'roxa';
+            } else {
+              cor = 'azul';
+            }
+
+            // Formata horário a partir do timestamp ISO (ex: "2026-04-18T22:30:00.000Z")
+            let horario = '--:--';
+            if (item.timestamp) {
+              const d = new Date(item.timestamp);
+              horario = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            }
+
+            return {
+              numero,
+              horario,
+              cor,
+              resultado : item.resultado,
+              spinNumber: item.spinNumber,
+            };
+          });
+        }
+
+        // Converte dados das outras APIs (Esportiva, BravoBet, ApostaTudo)
+        // Formato: { success, candles: [{ value, horario, category, ... }] }
         function convertApiDataToVelas(apiData) {
           if (!apiData || !Array.isArray(apiData)) return [];
-          
+
           const velasMap = new Map();
-          
+
           apiData.forEach((item, index) => {
             const numero = parseFloat(item.value || item.numero || 0);
             let cor = 'cinza';
-            
-            // Define a cor baseada no valor (usando a mesma lógica da API)
+
             if (numero >= 10 || item.category === 'high' || item.category === 'mega') {
               cor = 'rosa';
             } else if (numero >= 2 || item.category === 'medium') {
@@ -1560,8 +1597,7 @@
             } else {
               cor = 'azul';
             }
-            
-            // Usa o horário do item se disponível, senão gera um fictício
+
             let horario;
             if (item.horario) {
               horario = item.horario;
@@ -1569,70 +1605,74 @@
               const date = new Date(item.timestamp);
               horario = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
             } else {
-              // Gera um horário fictício baseado no timestamp atual menos o índice
               const now = new Date();
               now.setMinutes(now.getMinutes() - index);
               horario = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             }
-            
-            // Cria uma chave única baseada no horário e número (arredondado para 2 casas)
+
             const chave = `${horario}_${numero.toFixed(2)}`;
-            
-            // Só adiciona se não existir (remove duplicatas)
             if (!velasMap.has(chave)) {
               velasMap.set(chave, {
-                numero: numero,
-                horario: horario,
-                cor: cor,
-                value: item.value,
-                text: item.text,
-                category: item.category
+                numero,
+                horario,
+                cor,
+                value   : item.value,
+                text    : item.text,
+                category: item.category,
               });
             }
           });
-          
-          // Converte o Map de volta para array e inverte para mostrar as mais recentes primeiro
+
           return Array.from(velasMap.values()).reverse();
         }
 
         async function fetchVelas() {
           try {
-            const response = await fetch(API_URL);
+            const response    = await fetch(API_URL);
             const apiResponse = await response.json();
 
+            // ── Formato Apostax / JetX ─────────────────────────────────────
+            // { ok: true, total: N, resultados: [{ coeficiente, timestamp, resultado }] }
+            if (apiResponse.ok && Array.isArray(apiResponse.resultados)) {
+              if (apiResponse.resultados.length > 0) {
+                const velas = convertApostaxToVelas(apiResponse.resultados);
+                renderVelas(velas);
+              } else {
+                historicoContainer.innerHTML =
+                  '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-gray-400">⏳ Aguardando primeiras velas do JetX...</p></div>';
+              }
+              return;
+            }
+
+            // ── Formato padrão (outras casas) ──────────────────────────────
+            // { success: true, candles: [...] }
             if (apiResponse.success && apiResponse.candles && apiResponse.candles.length > 0) {
               const velas = convertApiDataToVelas(apiResponse.candles);
               renderVelas(velas.reverse());
             } else {
               console.log("⚠️ Nenhum dado disponível da API");
-              historicoContainer.innerHTML = '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-gray-400">Aguardando dados da API...</p></div>';
+              historicoContainer.innerHTML =
+                '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-gray-400">Aguardando dados da API...</p></div>';
             }
           } catch (error) {
             console.error("❌ Erro ao buscar velas da API:", error);
-            historicoContainer.innerHTML = '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-red-400">Erro ao conectar com a API. Verifique se o servidor está rodando.</p></div>';
+            historicoContainer.innerHTML =
+              '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-red-400">Erro ao conectar com a API. Verifique se o servidor está rodando.</p></div>';
           }
         }
 
         function getVelaClass(vela) {
           const numero = parseFloat(vela.numero);
-          if (numero >= 10) {
-            return "vela-rosa";
-          }
-          if (vela.cor === "roxa") {
-            return "vela-roxa";
-          }
-          if (vela.cor === "azul") {
-            return "vela-azul";
-          }
-          return "vela-cinza";
+          if (numero >= 10) return "vela-rosa";
+          if (numero >= 2)  return "vela-roxa";
+          return "vela-azul"; // < 2 sempre azul
         }
 
         function getVelaType(vela) {
           const numero = parseFloat(vela.numero);
-          if (numero >= 10) {
-            return "rosa";
-          }
-          return vela.cor;
+          if (numero >= 10) return "rosa";
+          if (numero >= 2)  return "roxa";
+          return "azul";
         }
 
         function shouldShowVela(velaType) {
@@ -2315,17 +2355,36 @@
 
         // Função para formatar horário da API (formato: "HH:MM")
         function formatDate(timeString) {
-          // A API retorna apenas "HH:MM", então vamos adicionar a data atual
-          const now = new Date();
+          // Apostax envia timestamp ISO completo; outras APIs enviam "HH:MM"
+          // Velas históricas sem timestamp chegam como '--:--'
+          if (!timeString || timeString === '--:--') return '--:--';
+
+          // Tenta ISO completo (ex: "2026-04-18T22:30:00.000Z")
+          if (timeString.includes('T')) {
+            const d = new Date(timeString);
+            if (!isNaN(d)) {
+              const day   = String(d.getDate()).padStart(2, '0');
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const year  = d.getFullYear();
+              const hrs   = String(d.getHours()).padStart(2, '0');
+              const mins  = String(d.getMinutes()).padStart(2, '0');
+              return `${day}/${month}/${year} - ${hrs}:${mins}`;
+            }
+          }
+
+          // Formato simples "HH:MM"
           const [hours, minutes] = timeString.split(':');
-          const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(hours), parseInt(minutes));
-          
-          const day = String(date.getDate()).padStart(2, '0');
+          const h = parseInt(hours);
+          const m = parseInt(minutes);
+          if (isNaN(h) || isNaN(m)) return timeString;
+
+          const now  = new Date();
+          const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+          const day   = String(date.getDate()).padStart(2, '0');
           const month = String(date.getMonth() + 1).padStart(2, '0');
-          const year = date.getFullYear();
-          const hrs = String(date.getHours()).padStart(2, '0');
-          const mins = String(date.getMinutes()).padStart(2, '0');
-          
+          const year  = date.getFullYear();
+          const hrs   = String(date.getHours()).padStart(2, '0');
+          const mins  = String(date.getMinutes()).padStart(2, '0');
           return `${day}/${month}/${year} - ${hrs}:${mins}`;
         }
 
