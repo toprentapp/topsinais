@@ -617,7 +617,11 @@
           if (currentHouse === "apostax") {
             return APOSTAX_API_URL;
           }
-          return `${API_BASE_URL}/${currentGame}`;
+          // Esportiva: Aviator usa a URL base; JetX usa /jetx
+          if (currentGame === "jetx") {
+            return `${API_BASE_URL}/jetx`;
+          }
+          return `${API_BASE_URL}`; // Esportiva Aviator — endpoint raiz
         }
 
         function applyHouseRules() {
@@ -1041,7 +1045,7 @@
                 if (!vistos.has(chave)) {
                   vistos.add(chave);
                   decimaisMapeados.push({
-                    decimalNum,
+                    decimalNum: decNum,
                     range,
                     velaRosa: { numero: parseFloat(vela.numero).toFixed(2), horario: vela.horario },
                     antecessor: { numero: parseFloat(ant.numero).toFixed(2), horario: ant.horario }
