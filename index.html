@@ -2313,51 +2313,111 @@
         }
 
         function construirPromptIA(velas, dados) {
-          const ultimas30 = velas.slice(0, 30);
+          const ultimas50 = velas.slice(0, 50);
 
-          const velasStr = ultimas30.map((v, i) => {
+          // Lista das 50 velas (agrupadas em blocos de 10 para facilitar leitura da IA)
+          const velasStr = ultimas50.map((v, i) => {
             const num  = parseFloat(v.numero).toFixed(2);
-            const tipo = parseFloat(v.numero) >= 10 ? '🌸ROSA'
-                       : parseFloat(v.numero) >= 2  ? '💜ROXA'
-                       :                              '💙AZUL';
-            return `  ${String(i + 1).padStart(2, ' ')}. ${num.padStart(7)}x  ${tipo}  [${v.horario}]`;
+            const tipo = parseFloat(v.numero) >= 10 ? 'ROSA'
+                       : parseFloat(v.numero) >= 2  ? 'ROXA'
+                       :                              'AZUL';
+            const sep  = (i + 1) % 10 === 0 ? '\n  ---' : '';
+            return `  ${String(i + 1).padStart(2)}. ${num.padStart(6)}x [${tipo}] ${v.horario}${sep}`;
           }).join('\n');
 
+          // Sequências de azuis entre os últimos pares rosa→rosa
+          const sequenciasAzuis = [];
+          let contAzuis = 0;
+          for (let i = 0; i < Math.min(ultimas50.length, 50); i++) {
+            if (parseFloat(ultimas50[i].numero) >= 10) {
+              if (contAzuis > 0) sequenciasAzuis.push(contAzuis);
+              contAzuis = 0;
+            } else {
+              contAzuis++;
+            }
+          }
+          const seqStr = sequenciasAzuis.length > 0
+            ? sequenciasAzuis.slice(-8).join(', ') + ' (azuis antes de cada Rosa, da mais antiga para a mais recente)'
+            : 'Sem histórico suficiente';
+
+          // Faixas de valores mais frequentes nas últimas 50
+          const faixas = { '1.0–1.9x': 0, '2.0–3.9x': 0, '4.0–9.9x': 0, '10x+': 0 };
+          ultimas50.forEach(v => {
+            const n = parseFloat(v.numero);
+            if (n >= 10)      faixas['10x+']++;
+            else if (n >= 4)  faixas['4.0–9.9x']++;
+            else if (n >= 2)  faixas['2.0–3.9x']++;
+            else              faixas['1.0–1.9x']++;
+          });
+          const distStr = Object.entries(faixas).map(([k,v]) => `${k}: ${v}×`).join(' | ');
+
+          // Últimas 10 velas resumidas para contexto imediato
+          const ultimas10Str = ultimas50.slice(0, 10).map(v =>
+            `${parseFloat(v.numero).toFixed(2)}x`
+          ).join(' → ');
+
           const intervalosStr = dados.intervalos.length > 0
-            ? dados.intervalos.map(d => `${d.intervalo} casa${d.intervalo > 1 ? 's' : ''} (${d.quantidade}×)`).join(' | ')
-            : 'Nenhum padrão identificado ainda';
+            ? dados.intervalos.map(d => `${d.intervalo} casas (${d.quantidade}×)`).join(' | ')
+            : 'Nenhum padrão mapeado';
 
           const decimaisStr = dados.decimaisMapeados.length > 0
             ? dados.decimaisMapeados.map(d =>
-                `faixa .${d.range.min}–${d.range.max} (antecessor ${d.antecessor.numero}x → Rosa ${d.velaRosa.numero}x)`
-              ).join('; ')
-            : 'Nenhuma faixa mapeada';
+                `.${d.range.min}–.${d.range.max} (de ${d.antecessor.numero}x antes da Rosa ${d.velaRosa.numero}x)`
+              ).join(' | ')
+            : 'Nenhuma';
 
           const gatilhoStr = dados.gatilhoRangeAtivo
-            ? `⚠️ SIM — decimal atual .${String(dados.decimalAtual).padStart(2,'0')} está dentro de uma faixa mapeada!`
-            : `Não — decimal atual .${String(dados.decimalAtual).padStart(2,'0')} fora das faixas`;
+            ? `SIM ⚠️ — decimal atual .${String(dados.decimalAtual).padStart(2,'0')} está dentro de uma faixa mapeada`
+            : `Não — decimal .${String(dados.decimalAtual).padStart(2,'0')} fora das faixas`;
 
-          return `Você é um analista especializado em padrões do jogo Aviator/JetX. Use os dados abaixo para uma análise objetiva.
+          const systemMsg = `Você é um analista quantitativo especializado em identificar padrões no jogo de multiplicadores Aviator/JetX.
+Regras do jogo:
+- Cada rodada gera um multiplicador aleatório (ex: 1.05x, 2.3x, 15x)
+- AZUL = < 2x (baixo) | ROXA = 2x–9.99x (médio) | ROSA = ≥ 10x (alto, raro)
+- O jogador decide quando sair antes do avião cair
+- Entrar cedo (alvo 2x) tem mais chance de sucesso; alvo 10x+ é especulativo`;
 
-ÚLTIMAS ${ultimas30.length} RODADAS (posição 1 = mais recente):
+          const userMsg = `═══ ÚLTIMAS ${ultimas50.length} RODADAS (posição 1 = mais recente) ═══
 ${velasStr}
 
-INDICADORES CALCULADOS PELO SISTEMA:
-• Status do mercado: ${dados.mercado} (${dados.velasAcima2x} das últimas 6 velas foram ≥ 2x)
-• Média das velas roxas (≥2x e <10x): ${dados.mediaRoxas}x
-• Média das velas azuis (<2x): ${dados.mediaAzuis}x
-• Velas desde a última Rosa (≥10x): ${dados.intervaloAtual}
-• Padrões de intervalo históricos entre Rosas: ${intervalosStr}
-• Decimais dos antecessores das Rosas mapeados: ${decimaisStr}
-• Gatilho de decimal por faixa ativo agora? ${gatilhoStr}
+═══ CONTEXTO IMEDIATO (10 mais recentes) ═══
+${ultimas10Str}
 
-RESPONDA (máximo 5 linhas, em português, seja direto):
-1. Convergência de padrões indica Rosa próxima? (sim / não / possível — justifique brevemente)
-2. Probabilidade de Rosa nas próximas 5 rodadas: baixa / média / alta
-3. Observação ou alerta mais importante`;
+═══ DISTRIBUIÇÃO DAS ${ultimas50.length} RODADAS ═══
+${distStr}
+
+═══ INDICADORES DO SISTEMA ═══
+• Mercado atual: ${dados.mercado} (${dados.velasAcima2x}/6 últimas ≥ 2x)
+• Média das roxas: ${dados.mediaRoxas}x | Média das azuis: ${dados.mediaAzuis}x
+• Velas desde última Rosa: ${dados.intervaloAtual}
+• Padrões de intervalo entre Rosas: ${intervalosStr}
+• Sequências de azuis antes de cada Rosa: ${seqStr}
+• Faixas decimais mapeadas (antecessores): ${decimaisStr}
+• Gatilho decimal ativo agora? ${gatilhoStr}
+
+═══ ANÁLISE SOLICITADA ═══
+Examine os dados acima e identifique:
+A) Padrões de repetição de valores (ex: o valor X.XX ou faixa aparece ciclicamente)
+B) Sequências antes de altas (ex: sempre X azuis antes de uma rosa)
+C) Ciclos de mercado (blocos de TOME seguidos de PAGUE)
+D) Qualquer outra anomalia ou regularidade estatística que você enxergar
+
+Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
+
+📊 PADRÕES DETECTADOS:
+[liste até 3 padrões concretos com dados da lista — seja específico, cite valores e posições]
+
+🎯 SINAL: ENTRAR AGORA | AGUARDAR | NÃO ENTRAR
+🏆 ALVO: 2x | 4x | 10x+ | SEM ALVO
+📈 CONFIANÇA: BAIXA | MÉDIA | ALTA
+
+💡 RAZÃO:
+[2-3 frases explicando a decisão com base nos padrões + indicadores]`;
+
+          return { systemMsg, userMsg };
         }
 
-        async function chamarGeminiIA(prompt) {
+        async function chamarGeminiIA({ systemMsg, userMsg }) {
           const resp = await fetch('https://api.openai.com/v1/chat/completions', {
             method : 'POST',
             headers: {
@@ -2366,9 +2426,12 @@ RESPONDA (máximo 5 linhas, em português, seja direto):
             },
             body: JSON.stringify({
               model      : 'gpt-4o-mini',
-              messages   : [{ role: 'user', content: prompt }],
-              max_tokens : 400,
-              temperature: 0.25
+              messages   : [
+                { role: 'system', content: systemMsg },
+                { role: 'user',   content: userMsg   }
+              ],
+              max_tokens : 600,
+              temperature: 0.2
             })
           });
           if (!resp.ok) {
@@ -2396,17 +2459,17 @@ RESPONDA (máximo 5 linhas, em português, seja direto):
                 <span class="ia-thinking-dot w-2 h-2 rounded-full bg-violet-400 inline-block"></span>
                 <span class="ia-thinking-dot w-2 h-2 rounded-full bg-violet-400 inline-block"></span>
               </div>
-              <span class="text-sm text-violet-300">Analisando ${Math.min(velas.length, 30)} velas e todos os indicadores...</span>
+              <span class="text-sm text-violet-300">Analisando ${Math.min(velas.length, 50)} velas e todos os indicadores...</span>
             </div>`;
           if (counterEl) counterEl.textContent = '— analisando…';
 
           try {
-            const analiseMercado  = analisarMercadoPagueTome(velas);
-            const dadosIntervalos = analisarIntervalosRosas(velas);
+            const analiseMercado   = analisarMercadoPagueTome(velas);
+            const dadosIntervalos  = analisarIntervalosRosas(velas);
             const decimaisMapeados = mapearDecimaisAntecessoresRosas(velas);
-            const velaAtual       = velas[0] || null;
-            const decAtual        = velaAtual ? extrairDecimalNumerico(parseFloat(velaAtual.numero)) : 0;
-            const gatilhosRange   = verificarGatilhoDecimalRange(velaAtual, decimaisMapeados);
+            const velaAtual        = velas[0] || null;
+            const decAtual         = velaAtual ? extrairDecimalNumerico(parseFloat(velaAtual.numero)) : 0;
+            const gatilhosRange    = verificarGatilhoDecimalRange(velaAtual, decimaisMapeados);
 
             const dados = {
               mercado          : analiseMercado.status,
@@ -2420,24 +2483,75 @@ RESPONDA (máximo 5 linhas, em português, seja direto):
               gatilhoRangeAtivo: gatilhosRange.length > 0
             };
 
-            const prompt   = construirPromptIA(velas, dados);
-            const resposta = await chamarGeminiIA(prompt);
+            const promptObj = construirPromptIA(velas, dados);
+            const resposta  = await chamarGeminiIA(promptObj);
 
             const agora = new Date();
             const hora  = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
 
-            // Destaca palavras-chave na resposta
-            const respostaFormatada = resposta
-              .replace(/\b(alta|ALTA)\b/g,     '<span class="text-green-400 font-bold">$1</span>')
-              .replace(/\b(média|MÉDIA|media)\b/g, '<span class="text-yellow-400 font-bold">$1</span>')
-              .replace(/\b(baixa|BAIXA)\b/g,   '<span class="text-blue-400 font-bold">$1</span>')
-              .replace(/\b(sim|SIM)\b/g,        '<span class="text-green-300 font-bold">$1</span>')
-              .replace(/\b(não|NÃO|nao|NAO)\b/g,'<span class="text-red-400 font-bold">$1</span>')
-              .replace(/\b(possível|POSSÍVEL|possivel)\b/g,'<span class="text-yellow-300 font-bold">$1</span>')
-              .replace(/(⚠️[^\n]*)/g, '<span class="text-orange-400 font-semibold">$1</span>');
+            // ── Parseia as seções do formato estruturado ──────────────────
+            const getSec = (emoji) => {
+              const re = new RegExp(`${emoji}[^\\n]*\\n([\\s\\S]*?)(?=\\n[📊🎯🏆📈💡]|$)`);
+              const m  = resposta.match(re);
+              return m ? m[1].trim() : null;
+            };
+            const linhasSinal = resposta.match(/🎯\s*SINAL[^:\n]*:?\s*(.+)/i);
+            const linhasAlvo  = resposta.match(/🏆\s*ALVO[^:\n]*:?\s*(.+)/i);
+            const linhasConf  = resposta.match(/📈\s*CONFIANÇA[^:\n]*:?\s*(.+)/i);
+            const secPadroes  = getSec('📊');
+            const secRazao    = getSec('💡');
 
-            contentEl.innerHTML = `<div class="ia-resposta text-sm text-gray-200">${respostaFormatada}</div>`;
-            if (ultimaEl) ultimaEl.textContent = `Última análise: ${hora} · ${Math.min(velas.length, 30)} velas analisadas`;
+            const sinalTxt = linhasSinal?.[1]?.trim() || '—';
+            const alvoTxt  = linhasAlvo?.[1]?.trim()  || '—';
+            const confTxt  = linhasConf?.[1]?.trim()  || '—';
+
+            const sinalUpper = sinalTxt.toUpperCase();
+            const sinalColor = sinalUpper.includes('ENTRAR')   ? 'text-green-400 bg-green-500/15 border-green-500/50'
+                             : sinalUpper.includes('AGUARDAR') ? 'text-yellow-400 bg-yellow-500/15 border-yellow-500/50'
+                             : 'text-red-400 bg-red-500/15 border-red-500/50';
+
+            const confUpper  = confTxt.toUpperCase();
+            const confColor  = confUpper.includes('ALTA')  ? 'text-green-300'
+                             : confUpper.includes('MÉDIA') || confUpper.includes('MEDIA') ? 'text-yellow-300'
+                             : 'text-gray-400';
+
+            const alvoUpper  = alvoTxt.toUpperCase();
+            const alvoColor  = alvoUpper.includes('10')  ? 'text-pink-400'
+                             : alvoUpper.includes('4')   ? 'text-purple-400'
+                             : alvoUpper.includes('2')   ? 'text-blue-400'
+                             : 'text-gray-400';
+
+            // Fallback: texto bruto se IA não seguiu o formato
+            const html = (secPadroes || linhasSinal) ? `
+              <div class="space-y-3">
+                ${secPadroes ? `
+                  <div class="p-3 rounded-lg bg-black/25 border border-gray-700/40">
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">📊 Padrões detectados</p>
+                    <p class="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">${secPadroes}</p>
+                  </div>` : ''}
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="rounded-xl p-2.5 border ${sinalColor} text-center">
+                    <p class="text-[9px] text-gray-500 uppercase tracking-wide mb-1">Sinal</p>
+                    <p class="text-[11px] font-black leading-tight">${sinalTxt}</p>
+                  </div>
+                  <div class="rounded-xl p-2.5 border border-gray-700/40 bg-black/20 text-center">
+                    <p class="text-[9px] text-gray-500 uppercase tracking-wide mb-1">Alvo</p>
+                    <p class="text-[11px] font-black ${alvoColor} leading-tight">${alvoTxt}</p>
+                  </div>
+                  <div class="rounded-xl p-2.5 border border-gray-700/40 bg-black/20 text-center">
+                    <p class="text-[9px] text-gray-500 uppercase tracking-wide mb-1">Confiança</p>
+                    <p class="text-[11px] font-bold ${confColor} leading-tight">${confTxt}</p>
+                  </div>
+                </div>
+                ${secRazao ? `
+                  <div class="ia-resposta text-xs text-gray-400 leading-relaxed pt-1">
+                    <span class="font-bold text-gray-500">💡 </span>${secRazao}
+                  </div>` : ''}
+              </div>`
+            : `<div class="ia-resposta text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">${resposta}</div>`;
+
+            contentEl.innerHTML = html;
+            if (ultimaEl) ultimaEl.textContent = `Última análise: ${hora} · ${Math.min(velas.length, 50)} velas`;
 
           } catch (err) {
             console.error('❌ Gemini IA erro:', err);
