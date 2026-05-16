@@ -2556,7 +2556,7 @@ Regras do jogo:
 REGRA OBRIGATÓRIA DE ENTRADA:
 Só recomende "ENTRAR AGORA" se TODAS as condições abaixo forem verdadeiras:
 1. Há pelo menos 3 Rosas (≥10x) nas últimas 30 velas
-2. A confiança é ALTA
+2. A confiança é MÉDIA ou ALTA
 3. Há padrão claro identificado nos dados
 Se qualquer condição falhar, use "AGUARDAR". Seja criterioso — é melhor aguardar do que entrar sem confirmação.`;
 
@@ -2769,7 +2769,7 @@ Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
             if (ultimaEl) ultimaEl.textContent = `Última análise: ${hora} · ${Math.min(velas.length, 50)} velas`;
 
             // ── Registrar entrada pendente (ENTRAR + ALTA + alvo válido + ≥3 rosas) ──
-            if (signalState === 'green' && confLevel === 3 && alvoNum > 1 && dados.rosasUltimas30 >= 3) {
+            if (signalState === 'green' && confLevel >= 2 && alvoNum > 1 && dados.rosasUltimas30 >= 3) {
               iaEntradaPendente = { alvoNum, triggerVelaId: ultimaPrimeiraVelaId };
             }
 
