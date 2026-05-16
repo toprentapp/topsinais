@@ -2768,9 +2768,10 @@ Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
             contentEl.innerHTML = html;
             if (ultimaEl) ultimaEl.textContent = `Última análise: ${hora} · ${Math.min(velas.length, 50)} velas`;
 
-            // ── Registrar entrada pendente (ENTRAR + ALTA + alvo válido + ≥3 rosas) ──
+            // ── Registrar entrada pendente (ENTRAR + MÉDIA/ALTA + alvo válido + ≥2 rosas) ──
             if (signalState === 'green' && confLevel >= 2 && alvoNum > 1 && dados.rosasUltimas30 >= 2) {
-              iaEntradaPendente = { alvoNum, triggerVelaId: ultimaPrimeiraVelaId };
+              // countAtDecision = contador atual; o resultado vem na próxima vela (count > este valor)
+              iaEntradaPendente = { alvoNum, countAtDecision: velasNovasAcumuladas };
             }
 
           } catch (err) {
@@ -2780,7 +2781,7 @@ Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
               <p class="text-gray-500 text-xs mt-1">Verifique se a chave está correta e tem saldo disponível.</p>`;
           } finally {
             isAnalisandoIA = false;
-            if (counterEl) counterEl.textContent = '— pronta para próxima vela';
+            if (counterEl) counterEl.textContent = iaEntradaPendente ? '⏳ aguardando resultado…' : '— pronta para próxima vela';
           }
         }
 
@@ -2827,8 +2828,12 @@ Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
 
           if (vid === ultimaPrimeiraVelaId) return; // mesma vela, sem novidade
 
+          ultimaPrimeiraVelaId = vid;
+          velasNovasAcumuladas++;
+
           // ── Verificar resultado de entrada pendente ─────────────────
-          if (iaEntradaPendente && iaEntradaPendente.triggerVelaId !== vid) {
+          // Usa o contador de velas para garantir que esperamos a vela SEGUINTE à decisão
+          if (iaEntradaPendente && velasNovasAcumuladas > iaEntradaPendente.countAtDecision) {
             const resultado = parseFloat(velas[0].numero);
             const win   = resultado >= iaEntradaPendente.alvoNum;
             const lucro = win ? parseFloat((iaEntradaPendente.alvoNum - 1).toFixed(2)) : -1;
@@ -2846,13 +2851,10 @@ Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
             renderizarIaPerformance();
           }
 
-          ultimaPrimeiraVelaId = vid;
-          velasNovasAcumuladas++;
-
           // Atualiza contador no painel
           const counterEl = document.getElementById('ia-velas-counter');
           if (counterEl && !isAnalisandoIA) {
-            counterEl.textContent = '— analisando a cada vela';
+            counterEl.textContent = iaEntradaPendente ? '⏳ aguardando resultado…' : '— analisando a cada vela';
           }
 
           // Dispara a cada nova vela
