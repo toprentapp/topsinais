@@ -457,14 +457,14 @@
         <!-- Chave Gemini IA -->
         <div class="mt-4 p-4 glass-effect border border-violet-500/30 rounded-xl">
           <label class="block mb-1 text-sm font-semibold text-gray-300">
-            🤖 Gemini IA — Análise de Padrões
+            🤖 OpenAI — Análise de Padrões
           </label>
           <p class="text-xs text-gray-500 mb-3">A IA analisa automaticamente a cada 10 novas velas usando todos os indicadores</p>
           <div class="flex gap-2">
             <input
               type="password"
               id="gemini-key-input"
-              placeholder="Cole sua chave AIza..."
+              placeholder="Cole sua chave sk-..."
               class="flex-1 glass-effect border border-violet-500/30 text-white text-sm rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent p-3"
             />
             <button
@@ -475,7 +475,7 @@
             </button>
           </div>
           <div id="gemini-key-status" class="mt-2 text-xs text-gray-500">
-            Insira sua chave gratuita de <a href="https://aistudio.google.com/apikey" target="_blank" class="text-violet-400 underline">aistudio.google.com</a>
+            Insira sua chave de <a href="https://platform.openai.com/api-keys" target="_blank" class="text-violet-400 underline">platform.openai.com/api-keys</a>
           </div>
         </div>
       </div>
@@ -618,7 +618,7 @@
         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div class="flex items-center gap-2">
             <span class="text-lg">🤖</span>
-            <span class="text-sm font-bold text-violet-300">Análise IA — Gemini</span>
+            <span class="text-sm font-bold text-violet-300">Análise IA — OpenAI</span>
             <span id="ia-velas-counter" class="text-xs text-gray-500 font-normal"></span>
           </div>
           <button
@@ -2291,10 +2291,10 @@
         // ══════════════════════════════════════════════════════════════════
 
         function carregarGeminiKey() {
-          try { return localStorage.getItem('geminiApiKey') || ''; } catch { return ''; }
+          try { return localStorage.getItem('openaiApiKey') || ''; } catch { return ''; }
         }
         function salvarGeminiKeyStorage(key) {
-          try { localStorage.setItem('geminiApiKey', key); } catch {}
+          try { localStorage.setItem('openaiApiKey', key); } catch {}
         }
 
         function atualizarStatusGeminiKey() {
@@ -2358,13 +2358,17 @@ RESPONDA (máximo 5 linhas, em português, seja direto):
         }
 
         async function chamarGeminiIA(prompt) {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
-          const resp = await fetch(url, {
+          const resp = await fetch('https://api.openai.com/v1/chat/completions', {
             method : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body   : JSON.stringify({
-              contents        : [{ parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 0.25, maxOutputTokens: 350 }
+            headers: {
+              'Content-Type' : 'application/json',
+              'Authorization': `Bearer ${geminiApiKey}`
+            },
+            body: JSON.stringify({
+              model      : 'gpt-4o-mini',
+              messages   : [{ role: 'user', content: prompt }],
+              max_tokens : 400,
+              temperature: 0.25
             })
           });
           if (!resp.ok) {
@@ -2372,7 +2376,7 @@ RESPONDA (máximo 5 linhas, em português, seja direto):
             throw new Error(err.error?.message || `HTTP ${resp.status}`);
           }
           const data = await resp.json();
-          return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Sem resposta.';
+          return data.choices?.[0]?.message?.content?.trim() || 'Sem resposta.';
         }
 
         async function executarAnaliseIA(velas) {
@@ -2438,8 +2442,8 @@ RESPONDA (máximo 5 linhas, em português, seja direto):
           } catch (err) {
             console.error('❌ Gemini IA erro:', err);
             contentEl.innerHTML = `
-              <p class="text-red-400 text-sm">❌ Erro ao consultar Gemini: ${err.message}</p>
-              <p class="text-gray-500 text-xs mt-1">Verifique se a chave está correta e tem cota disponível.</p>`;
+              <p class="text-red-400 text-sm">❌ Erro ao consultar OpenAI: ${err.message}</p>
+              <p class="text-gray-500 text-xs mt-1">Verifique se a chave está correta e tem saldo disponível.</p>`;
           } finally {
             isAnalisandoIA = false;
             const faltam = 10;
