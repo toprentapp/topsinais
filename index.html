@@ -1495,15 +1495,16 @@
           
           // Ordena padrões: vela atual primeiro, depois os demais por timestamp
           const padroesOrdenados = [...padroesDetectados].sort((a, b) => {
-            const aIsAtual = velaAtual === a.antecessor2.numero;
-            const bIsAtual = velaAtual === b.antecessor2.numero;
-            
+            const aIsAtual = a.antecessor2 && velaAtual === a.antecessor2.numero;
+            const bIsAtual = b.antecessor2 && velaAtual === b.antecessor2.numero;
+
             if (aIsAtual && !bIsAtual) return -1;
             if (!aIsAtual && bIsAtual) return 1;
             return b.timestamp - a.timestamp;
           });
-          
+
           padroesList.innerHTML = padroesOrdenados.map(padrao => {
+            if (!padrao.antecessor2) return ''; // pula entradas corrompidas
             const isGatilhoAtual = velaAtual === padrao.antecessor2.numero;
             const cardClass = isGatilhoAtual ? 'gatilho-atual' : '';
             
@@ -1651,38 +1652,57 @@
           return Array.from(velasMap.values()).reverse();
         }
 
-        async function fetchVelas() {
-          try {
-            const response    = await fetch(API_URL);
-            const apiResponse = await response.json();
+        // Rastreia se já exibimos velas com sucesso ao menos uma vez
+        let velaJaCarregadas = false;
 
-            // ── Formato Apostax / JetX ─────────────────────────────────────
+        async function fetchVelas() {
+          let apiResponse = null;
+
+          // ── 1. Busca e parse da resposta (erros de rede/JSON ficam aqui) ──
+          try {
+            const response = await fetch(API_URL);
+            apiResponse = await response.json();
+          } catch (netError) {
+            console.error("❌ Erro de rede ao buscar velas:", netError);
+            // Só mostra mensagem de erro se ainda não temos dados exibidos
+            if (!velaJaCarregadas) {
+              historicoContainer.innerHTML =
+                '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-red-400">Erro ao conectar com a API. Verifique se o servidor está rodando.</p></div>';
+            }
+            return;
+          }
+
+          // ── 2. Processa e renderiza (erros de JS ficam aqui, separados) ──
+          try {
+            // Formato Apostax / JetX
             // { ok: true, total: N, resultados: [{ coeficiente, timestamp, resultado }] }
             if (apiResponse.ok && Array.isArray(apiResponse.resultados)) {
               if (apiResponse.resultados.length > 0) {
                 const velas = convertApostaxToVelas(apiResponse.resultados);
                 renderVelas(velas);
-              } else {
+                velaJaCarregadas = true;
+              } else if (!velaJaCarregadas) {
                 historicoContainer.innerHTML =
                   '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-gray-400">⏳ Aguardando primeiras velas do JetX...</p></div>';
               }
               return;
             }
 
-            // ── Formato padrão (outras casas) ──────────────────────────────
+            // Formato padrão (Esportiva, BravoBet, ApostaTudo)
             // { success: true, candles: [...] }
             if (apiResponse.success && apiResponse.candles && apiResponse.candles.length > 0) {
               const velas = convertApiDataToVelas(apiResponse.candles);
               renderVelas(velas.reverse());
-            } else {
+              velaJaCarregadas = true;
+            } else if (!velaJaCarregadas) {
               console.log("⚠️ Nenhum dado disponível da API");
               historicoContainer.innerHTML =
                 '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-gray-400">Aguardando dados da API...</p></div>';
             }
-          } catch (error) {
-            console.error("❌ Erro ao buscar velas da API:", error);
-            historicoContainer.innerHTML =
-              '<div class="glass-effect rounded-xl p-6 text-center"><p class="text-red-400">Erro ao conectar com a API. Verifique se o servidor está rodando.</p></div>';
+          } catch (renderError) {
+            // Erro interno de JS (ex: dados corrompidos no localStorage, bug de renderização)
+            // Não apaga as velas já exibidas — apenas loga no console
+            console.error("❌ Erro interno ao processar velas:", renderError);
           }
         }
 
@@ -1770,29 +1790,40 @@
             // Verifica se o intervalo atual está próximo deste padrão
             const isProximo = intervaloAtual > 0 && intervaloAtual === data.intervalo;
 
-            // Define cores baseadas na quantidade de ocorrências
-            let bgClass = 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/30';
-            let textClass = 'text-pink-400';
+            // Define esquema de cores baseado na quantidade
+            let borderColor, numColor, labelColor, badgeBg;
 
             if (data.quantidade >= 5) {
-              bgClass = 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-500/50';
-              textClass = 'text-green-400';
+              borderColor = 'border-emerald-500/60';
+              numColor    = 'text-emerald-300';
+              labelColor  = 'text-emerald-500/80';
+              badgeBg     = 'bg-emerald-900/50';
             } else if (data.quantidade >= 3) {
-              bgClass = 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50';
-              textClass = 'text-yellow-400';
+              borderColor = 'border-yellow-500/60';
+              numColor    = 'text-yellow-300';
+              labelColor  = 'text-yellow-500/80';
+              badgeBg     = 'bg-yellow-900/50';
+            } else {
+              borderColor = 'border-pink-500/40';
+              numColor    = 'text-pink-300';
+              labelColor  = 'text-pink-500/70';
+              badgeBg     = 'bg-pink-900/40';
             }
 
-            // Badge de padrão atual
-            const proximoBadge = isProximo
-              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500 text-black rounded animate-pulse">🔥 ATUAL</span>'
+            const bgClass = isProximo
+              ? 'bg-gradient-to-b from-yellow-500/20 to-orange-500/10'
+              : 'bg-black/20';
+
+            const atualBadge = isProximo
+              ? '<span class="block text-[9px] font-bold text-yellow-400 text-center tracking-widest uppercase animate-pulse">🔥ATUAL</span>'
               : '';
 
             return `
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border shadow-md">
-                ${proximoBadge}
-                <span class="font-bold ${textClass}">${data.intervalo} Casa${data.intervalo > 1 ? 's' : ''}</span>
-                <span class="text-gray-400 text-xs">→</span>
-                <span class="font-semibold text-white text-sm">${data.quantidade}x</span>
+              <span class="inline-flex flex-col items-center gap-0 px-3 py-2 rounded-xl ${bgClass} border ${borderColor} shadow-md min-w-[52px]">
+                ${atualBadge}
+                <span class="text-2xl font-black leading-none ${numColor}">${data.intervalo}</span>
+                <span class="text-[9px] font-semibold uppercase tracking-wider ${labelColor}">casa${data.intervalo > 1 ? 's' : ''}</span>
+                <span class="mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${badgeBg} text-gray-400 border border-gray-600/40">${data.quantidade}×</span>
               </span>
             `;
           }).join('');
@@ -2235,7 +2266,7 @@
           // Verifica quais velas são gatilhos atuais (padrões detectados)
           const gatilhosAtuais = new Set();
           padroesDetectados.forEach(padrao => {
-            if (velaAtual === padrao.antecessor2.numero) {
+            if (padrao.antecessor2 && velaAtual === padrao.antecessor2.numero) {
               gatilhosAtuais.add(padrao.antecessor2.numero);
             }
           });
