@@ -459,7 +459,7 @@
           <label class="block mb-1 text-sm font-semibold text-gray-300">
             🤖 OpenAI — Análise de Padrões
           </label>
-          <p class="text-xs text-gray-500 mb-3">A IA analisa automaticamente a cada 10 novas velas usando todos os indicadores</p>
+          <p class="text-xs text-gray-500 mb-3">A IA analisa automaticamente a cada nova vela usando todos os indicadores</p>
           <div class="flex gap-2">
             <input
               type="password"
@@ -629,7 +629,7 @@
           </button>
         </div>
         <div id="ia-analise-content" class="text-sm text-gray-400">
-          Aguardando 10 novas velas para a primeira análise automática...
+          Aguardando nova vela para a primeira análise automática...
         </div>
         <div id="ia-ultima-analise" class="mt-3 text-[10px] text-gray-600 text-right"></div>
       </div>
@@ -2560,8 +2560,7 @@ Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
               <p class="text-gray-500 text-xs mt-1">Verifique se a chave está correta e tem saldo disponível.</p>`;
           } finally {
             isAnalisandoIA = false;
-            const faltam = 10;
-            if (counterEl) counterEl.textContent = `— próxima em ${faltam} velas`;
+            if (counterEl) counterEl.textContent = '— pronta para próxima vela';
           }
         }
 
@@ -2578,17 +2577,12 @@ Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
 
           // Atualiza contador no painel
           const counterEl = document.getElementById('ia-velas-counter');
-          const faltam    = 10 - (velasNovasAcumuladas % 10);
           if (counterEl && !isAnalisandoIA) {
-            counterEl.textContent = faltam === 10
-              ? '— análise concluída'
-              : `— próxima em ${faltam} vela${faltam > 1 ? 's' : ''}`;
+            counterEl.textContent = '— analisando a cada vela';
           }
 
-          // Dispara a cada 10 velas novas
-          if (velasNovasAcumuladas % 10 === 0) {
-            executarAnaliseIA(velas);
-          }
+          // Dispara a cada nova vela
+          executarAnaliseIA(velas);
         }
 
         // ══════════════════════════════════════════════════════════════════
