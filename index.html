@@ -295,120 +295,238 @@
         line-height: 1.65;
       }
 
-      /* ── IA Visual Panel ────────────────────────────────────── */
-      .ia-visual-container { display: flex; flex-direction: column; gap: 10px; }
+      /* ── IA Bot Panel ───────────────────────────────────────── */
 
-      /* Signal banner */
-      .ia-signal-banner {
-        position: relative; overflow: hidden;
-        display: flex; align-items: center; gap: 16px;
-        padding: 16px 20px; border-radius: 16px; border: 1.5px solid;
-      }
-      .ia-signal-banner.ia-green {
-        background: linear-gradient(135deg, rgba(34,197,94,0.18) 0%, rgba(16,185,129,0.08) 100%);
-        border-color: rgba(34,197,94,0.5);
-        animation: ia-glow-green 2s ease-in-out infinite;
-      }
-      .ia-signal-banner.ia-yellow {
-        background: linear-gradient(135deg, rgba(234,179,8,0.18) 0%, rgba(245,158,11,0.08) 100%);
-        border-color: rgba(234,179,8,0.5);
-        animation: ia-glow-yellow 2s ease-in-out infinite;
-      }
-      .ia-signal-banner.ia-red {
-        background: linear-gradient(135deg, rgba(239,68,68,0.18) 0%, rgba(220,38,38,0.08) 100%);
-        border-color: rgba(239,68,68,0.5);
-        animation: ia-glow-red 2s ease-in-out infinite;
-      }
-      @keyframes ia-glow-green {
-        0%,100% { box-shadow: 0 0 14px rgba(34,197,94,0.2); }
-        50%      { box-shadow: 0 0 38px rgba(34,197,94,0.65); }
-      }
-      @keyframes ia-glow-yellow {
-        0%,100% { box-shadow: 0 0 14px rgba(234,179,8,0.2); }
-        50%      { box-shadow: 0 0 38px rgba(234,179,8,0.65); }
-      }
-      @keyframes ia-glow-red {
-        0%,100% { box-shadow: 0 0 14px rgba(239,68,68,0.2); }
-        50%      { box-shadow: 0 0 38px rgba(239,68,68,0.65); }
+      /* Wrapper geral */
+      .ia-bot-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
 
-      /* Scan line que percorre o banner */
-      .ia-scan-line {
-        position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-        animation: ia-scan 3.5s ease-in-out infinite;
-        pointer-events: none;
-      }
-      @keyframes ia-scan {
-        0%   { left: -60%; }
-        100% { left: 120%; }
+      /* Linha principal: bot + métricas */
+      .ia-bot-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
       }
 
-      .ia-signal-icon-wrap { font-size: 2.4rem; line-height: 1; flex-shrink: 0; }
-      .ia-signal-text-wrap { display: flex; flex-direction: column; }
-      .ia-signal-action {
-        font-size: 1.25rem; font-weight: 900;
-        letter-spacing: 0.06em; line-height: 1.1;
-      }
-      .ia-signal-action.ia-green  { color: #4ade80; }
-      .ia-signal-action.ia-yellow { color: #fbbf24; }
-      .ia-signal-action.ia-red    { color: #f87171; }
-      .ia-signal-sub {
-        font-size: 0.63rem; color: rgba(255,255,255,0.38);
-        letter-spacing: 0.14em; text-transform: uppercase; margin-top: 3px;
+      /* ── Robot (CSS puro) ─── */
+      .ia-robot {
+        position: relative;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
       }
 
-      /* Metrics grid */
-      .ia-metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-      .ia-metric-card {
-        display: flex; flex-direction: column; align-items: center; gap: 7px;
-        padding: 14px 10px; border-radius: 14px;
-        background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.07);
+      /* Antena */
+      .ia-robot-antenna {
+        width: 2px;
+        height: 8px;
+        background: rgba(139,92,246,0.45);
+        border-radius: 1px;
+        position: relative;
       }
-      .ia-metric-label {
-        font-size: 0.58rem; font-weight: 700;
-        letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.32);
+      .ia-robot-antenna::before {
+        content: '';
+        position: absolute;
+        top: -5px; left: 50%;
+        transform: translateX(-50%);
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: #8b5cf6;
+        box-shadow: 0 0 8px rgba(139,92,246,0.9), 0 0 16px rgba(139,92,246,0.4);
+        animation: bot-led 2.8s ease-in-out infinite;
       }
-      .ia-metric-value { font-size: 1.55rem; font-weight: 900; line-height: 1; }
-      .ia-alvo-rosa { color: #f472b6; text-shadow: 0 0 14px rgba(244,114,182,0.7); }
-      .ia-alvo-roxa { color: #c084fc; text-shadow: 0 0 14px rgba(192,132,252,0.7); }
-      .ia-alvo-azul { color: #60a5fa; text-shadow: 0 0 14px rgba(96,165,250,0.7); }
-      .ia-alvo-sem  { color: rgba(255,255,255,0.35); }
-
-      /* Confidence dots */
-      .ia-conf-dots { display: flex; gap: 7px; align-items: center; }
-      .ia-conf-dot {
-        width: 15px; height: 15px; border-radius: 50%;
-        background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.12);
-        transition: all 0.4s;
-      }
-      .ia-conf-dot.filled-low  { background: #f87171; border-color: #f87171; box-shadow: 0 0 10px rgba(248,113,113,0.8); }
-      .ia-conf-dot.filled-mid  { background: #fbbf24; border-color: #fbbf24; box-shadow: 0 0 10px rgba(251,191,36,0.8); }
-      .ia-conf-dot.filled-high { background: #4ade80; border-color: #4ade80; box-shadow: 0 0 10px rgba(74,222,128,0.8); }
-      .ia-conf-label-text {
-        font-size: 0.62rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.1em; color: rgba(255,255,255,0.38);
+      @keyframes bot-led {
+        0%,100% { opacity: 0.55; box-shadow: 0 0 5px rgba(139,92,246,0.6); }
+        50%      { opacity: 1;    box-shadow: 0 0 12px rgba(139,92,246,1), 0 0 22px rgba(139,92,246,0.45); }
       }
 
-      /* Patterns list */
-      .ia-padroes-list {
-        display: flex; flex-direction: column; gap: 5px;
-        padding: 10px 12px; border-radius: 12px; margin: 0;
-        background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.05); list-style: none;
+      /* Cabeça */
+      .ia-robot-head {
+        width: 44px; height: 40px;
+        background: rgba(10,6,24,0.92);
+        border: 1.5px solid rgba(139,92,246,0.3);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        position: relative;
+        overflow: hidden;
       }
-      .ia-padrao-item {
-        font-size: 0.7rem; color: rgba(255,255,255,0.55);
-        padding: 4px 0; line-height: 1.45;
-        border-bottom: 1px solid rgba(255,255,255,0.04);
+      /* Reflexo sutil no topo */
+      .ia-robot-head::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(139,92,246,0.5), transparent);
       }
-      .ia-padrao-item:last-child { border-bottom: none; }
-      .ia-padrao-item::before { content: '▸ '; color: rgba(139,92,246,0.65); font-size: 0.6rem; }
+      /* Linha de varredura interna */
+      .ia-robot-head::after {
+        content: '';
+        position: absolute;
+        top: -100%; left: 0; right: 0;
+        height: 30%;
+        background: linear-gradient(to bottom, transparent, rgba(139,92,246,0.06), transparent);
+        animation: bot-scan 4s ease-in-out infinite;
+      }
+      @keyframes bot-scan {
+        0%   { top: -30%; }
+        100% { top: 110%; }
+      }
 
-      /* Reason */
-      .ia-razao-text {
-        font-size: 0.7rem; color: rgba(255,255,255,0.4); line-height: 1.6;
-        padding: 8px 12px; margin: 0;
-        border-left: 2px solid rgba(139,92,246,0.4);
+      /* Olhos */
+      .ia-robot-eyes {
+        display: flex;
+        gap: 8px;
+      }
+      .ia-robot-eye {
+        width: 8px; height: 5px;
+        border-radius: 2px;
+        transition: background 0.5s, box-shadow 0.5s;
+        animation: bot-blink 5s ease-in-out infinite;
+      }
+      .ia-robot-eye:last-child { animation-delay: 0.07s; }
+      @keyframes bot-blink {
+        0%,88%,100% { transform: scaleY(1); }
+        92%          { transform: scaleY(0.08); }
+      }
+      .eye-green  { background: #4ade80; box-shadow: 0 0 7px rgba(74,222,128,0.95); }
+      .eye-yellow { background: #fbbf24; box-shadow: 0 0 7px rgba(251,191,36,0.95); }
+      .eye-red    { background: #f87171; box-shadow: 0 0 7px rgba(248,113,113,0.95); }
+
+      /* Boca (grade de alto-falante) */
+      .ia-robot-mouth {
+        display: flex;
+        gap: 3px;
+        align-items: flex-end;
+      }
+      .ia-robot-mouth span {
+        width: 3px;
+        border-radius: 1px;
+        background: rgba(139,92,246,0.4);
+      }
+      .ia-robot-mouth span:nth-child(1) { height: 3px; }
+      .ia-robot-mouth span:nth-child(2) { height: 5px; }
+      .ia-robot-mouth span:nth-child(3) { height: 7px; animation: bot-bar 1.8s ease-in-out infinite; }
+      .ia-robot-mouth span:nth-child(4) { height: 5px; animation: bot-bar 1.8s ease-in-out infinite 0.3s; }
+      .ia-robot-mouth span:nth-child(5) { height: 3px; }
+      @keyframes bot-bar {
+        0%,100% { height: 5px; }
+        50%      { height: 9px; }
+      }
+
+      /* Pescoço */
+      .ia-robot-neck {
+        width: 12px; height: 3px;
+        background: rgba(139,92,246,0.2);
+        border-radius: 1px;
+      }
+
+      /* ── Métricas ─── */
+      .ia-bot-metrics {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .ia-bot-top {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+      }
+      .ia-bot-signal-val {
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        line-height: 1;
+      }
+      .ia-bot-signal-val.s-green  { color: #4ade80; }
+      .ia-bot-signal-val.s-yellow { color: #fbbf24; }
+      .ia-bot-signal-val.s-red    { color: #f87171; }
+
+      .ia-bot-sep { color: rgba(255,255,255,0.15); font-size: 0.7rem; }
+
+      .ia-bot-alvo-val {
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        line-height: 1;
+      }
+      .av-rosa { color: #f472b6; }
+      .av-roxa { color: #c084fc; }
+      .av-azul { color: #60a5fa; }
+      .av-sem  { color: rgba(255,255,255,0.3); }
+
+      /* Barra de confiança */
+      .ia-bot-conf {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .ia-bot-conf-track {
+        display: flex;
+        gap: 3px;
+        flex: 1;
+      }
+      .ia-bot-conf-seg {
+        flex: 1; height: 3px;
+        border-radius: 2px;
+        background: rgba(255,255,255,0.07);
+      }
+      .ia-bot-conf-seg.on-low  { background: #f87171; }
+      .ia-bot-conf-seg.on-mid  { background: #fbbf24; }
+      .ia-bot-conf-seg.on-high { background: #4ade80; }
+      .ia-bot-conf-lbl {
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.3);
+        white-space: nowrap;
+      }
+
+      /* Linha divisória */
+      .ia-bot-hr {
+        height: 1px;
+        background: rgba(255,255,255,0.05);
+      }
+
+      /* Padrões */
+      .ia-bot-patterns {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .ia-bot-pat {
+        font-size: 0.65rem;
+        color: rgba(255,255,255,0.42);
+        line-height: 1.45;
+        padding-left: 11px;
+        position: relative;
+      }
+      .ia-bot-pat::before {
+        content: '›';
+        position: absolute;
+        left: 0;
+        color: rgba(139,92,246,0.55);
+        font-weight: 700;
+      }
+
+      /* Razão */
+      .ia-bot-reason {
+        font-size: 0.63rem;
+        color: rgba(255,255,255,0.28);
+        line-height: 1.6;
+        margin: 0;
+        font-style: italic;
       }
     </style>
   </head>
@@ -2524,7 +2642,7 @@ Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
 [liste até 3 padrões concretos com dados da lista — seja específico, cite valores e posições]
 
 🎯 SINAL: ENTRAR AGORA | AGUARDAR | NÃO ENTRAR
-🏆 ALVO: 2x | 4x | 10x+ | SEM ALVO
+🏆 ALVO: [escreva UM único número realista em X — use a média das Roxas (${dados.mediaRoxas}x) e das Azuis (${dados.mediaAzuis}x) como referência. Exemplos: 1.8x, 2.4x, 3.1x, 5.5x. Não escreva faixas nem categorias — escreva o número exato que recomenda buscar nesta rodada]
 📈 CONFIANÇA: BAIXA | MÉDIA | ALTA
 
 💡 RAZÃO:
@@ -2637,48 +2755,59 @@ Depois cruze com os indicadores do sistema e responda EXATAMENTE neste formato:
                              : alvoUpper.includes('2')   ? 'text-blue-400'
                              : 'text-gray-400';
 
-            // ── Novo painel visual ────────────────────────────────────────
+            // ── Bot Panel ─────────────────────────────────────────────────
             const signalState = (sinalUpper.includes('ENTRAR') && !sinalUpper.includes('NÃO') && !sinalUpper.includes('NAO'))
                               ? 'green'
                               : sinalUpper.includes('AGUARDAR') ? 'yellow' : 'red';
-            const signalIcon  = signalState === 'green' ? '🚀' : signalState === 'yellow' ? '⏳' : '🚫';
-            const signalLabel = signalState === 'green' ? 'sinal de entrada' : signalState === 'yellow' ? 'aguardando momento' : 'ficar de fora';
 
-            const confLevel = confUpper.includes('ALTA') ? 3 : (confUpper.includes('MÉDIA') || confUpper.includes('MEDIA')) ? 2 : 1;
-            const dotClass  = confLevel === 3 ? 'filled-high' : confLevel === 2 ? 'filled-mid' : 'filled-low';
-            const dotsHtml  = [1,2,3].map(i => '<span class="ia-conf-dot' + (i <= confLevel ? ' ' + dotClass : '') + '"></span>').join('');
+            const confLevel  = confUpper.includes('ALTA') ? 3 : (confUpper.includes('MÉDIA') || confUpper.includes('MEDIA')) ? 2 : 1;
+            const segOnClass = confLevel === 3 ? 'on-high' : confLevel === 2 ? 'on-mid' : 'on-low';
+            const confSegs   = [1,2,3].map(i =>
+              '<div class="ia-bot-conf-seg' + (i <= confLevel ? ' ' + segOnClass : '') + '"></div>'
+            ).join('');
 
-            const alvoClass   = alvoUpper.includes('10') ? 'ia-alvo-rosa' : alvoUpper.includes('4') ? 'ia-alvo-roxa' : alvoUpper.includes('2') ? 'ia-alvo-azul' : 'ia-alvo-sem';
-            const alvoDisplay = alvoUpper.includes('10') ? '🌸 10x+' : alvoUpper.includes('4') ? '💜 4x' : alvoUpper.includes('2') ? '💙 2x' : alvoTxt;
+            const alvoNumMatch = alvoTxt.match(/([\d]+(?:[.,][\d]+)?)\s*x/i);
+            const alvoNum      = alvoNumMatch ? parseFloat(alvoNumMatch[1].replace(',', '.')) : 0;
+            const avClass      = alvoNum >= 10 ? 'av-rosa' : alvoNum >= 4 ? 'av-roxa' : alvoNum >= 1.5 ? 'av-azul' : 'av-sem';
+            const avDisplay    = alvoNum > 0 ? alvoNum.toFixed(1) + 'x' : alvoTxt;
 
-            const padroesItemsHtml = secPadroes
+            const patsHtml = secPadroes
               ? secPadroes.split('\n').filter(l => l.trim()).slice(0, 3)
-                  .map(l => '<li class="ia-padrao-item">' + l.replace(/^[-•*\dA-D][).:\s]*/,'').trim() + '</li>').join('')
+                  .map(l => '<div class="ia-bot-pat">' + l.replace(/^[-•*\dA-D][).:\s]*/,'').trim() + '</div>').join('')
               : '';
 
             const html = (linhasSinal || secPadroes)
-              ? '<div class="ia-visual-container">'
-                + '<div class="ia-signal-banner ia-' + signalState + '">'
-                  + '<div class="ia-scan-line"></div>'
-                  + '<span class="ia-signal-icon-wrap">' + signalIcon + '</span>'
-                  + '<div class="ia-signal-text-wrap">'
-                    + '<span class="ia-signal-action ia-' + signalState + '">' + sinalTxt + '</span>'
-                    + '<span class="ia-signal-sub">' + signalLabel + '</span>'
+              ? '<div class="ia-bot-panel">'
+                  + '<div class="ia-bot-row">'
+                    // Robot CSS
+                    + '<div class="ia-robot">'
+                      + '<div class="ia-robot-antenna"></div>'
+                      + '<div class="ia-robot-head">'
+                        + '<div class="ia-robot-eyes">'
+                          + '<div class="ia-robot-eye eye-' + signalState + '"></div>'
+                          + '<div class="ia-robot-eye eye-' + signalState + '"></div>'
+                        + '</div>'
+                        + '<div class="ia-robot-mouth">'
+                          + '<span></span><span></span><span></span><span></span><span></span>'
+                        + '</div>'
+                      + '</div>'
+                      + '<div class="ia-robot-neck"></div>'
+                    + '</div>'
+                    // Métricas
+                    + '<div class="ia-bot-metrics">'
+                      + '<div class="ia-bot-top">'
+                        + '<span class="ia-bot-signal-val s-' + signalState + '">' + sinalTxt + '</span>'
+                        + '<span class="ia-bot-sep">·</span>'
+                        + '<span class="ia-bot-alvo-val ' + avClass + '">' + avDisplay + '</span>'
+                      + '</div>'
+                      + '<div class="ia-bot-conf">'
+                        + '<div class="ia-bot-conf-track">' + confSegs + '</div>'
+                        + '<span class="ia-bot-conf-lbl">' + confTxt + '</span>'
+                      + '</div>'
+                    + '</div>'
                   + '</div>'
-                + '</div>'
-                + '<div class="ia-metrics-grid">'
-                  + '<div class="ia-metric-card">'
-                    + '<span class="ia-metric-label">Alvo</span>'
-                    + '<span class="ia-metric-value ' + alvoClass + '">' + alvoDisplay + '</span>'
-                  + '</div>'
-                  + '<div class="ia-metric-card">'
-                    + '<span class="ia-metric-label">Confiança</span>'
-                    + '<div class="ia-conf-dots">' + dotsHtml + '</div>'
-                    + '<span class="ia-conf-label-text">' + confTxt + '</span>'
-                  + '</div>'
-                + '</div>'
-                + (padroesItemsHtml ? '<ul class="ia-padroes-list">' + padroesItemsHtml + '</ul>' : '')
-                + (secRazao ? '<p class="ia-razao-text">' + secRazao + '</p>' : '')
+                  + (patsHtml ? '<div class="ia-bot-hr"></div><div class="ia-bot-patterns">' + patsHtml + '</div>' : '')
+                  + (secRazao ? '<p class="ia-bot-reason">' + secRazao + '</p>' : '')
               + '</div>'
               : '<div class="ia-resposta text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">' + resposta + '</div>';
 
