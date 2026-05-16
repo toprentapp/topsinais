@@ -147,26 +147,29 @@
       
       .interval-badge {
         position: absolute;
-        top: -10px;
-        right: -10px;
-        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-        color: white;
-        font-size: 0.65rem;
-        font-weight: 700;
-        width: 24px;
-        height: 24px;
+        top: -11px;
+        right: -11px;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: #111827;
+        font-size: 0.7rem;
+        font-weight: 900;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+        border: 2px solid #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7), 0 0 6px rgba(251,191,36,0.6);
         z-index: 20;
+        letter-spacing: -0.5px;
       }
-      
+
       .interval-badge.before-rosa {
-        border: 2px solid #ec4899;
-        box-shadow: 0 0 12px rgba(236, 72, 153, 0.8);
+        background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+        color: #fff;
+        border: 2px solid #fff;
+        box-shadow: 0 0 10px rgba(236, 72, 153, 0.9), 0 2px 6px rgba(0,0,0,0.6);
       }
       
       @media (max-width: 640px) {
@@ -243,6 +246,25 @@
         50% {
           box-shadow: 0 0 30px rgba(34, 197, 94, 0.8);
         }
+      }
+
+      .vela-segundo-antecessor {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+        color: white !important;
+        border: 2px solid #fb923c !important;
+        box-shadow: 0 0 16px rgba(249, 115, 22, 0.55) !important;
+      }
+
+      @keyframes pulse-orange-range {
+        0%, 100% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.5); }
+        50% { box-shadow: 0 0 35px rgba(249, 115, 22, 0.9); }
+      }
+
+      .vela-gatilho-range {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        animation: pulse-orange-range 1.2s infinite;
+        border: 2px solid #f87171 !important;
+        color: white !important;
       }
       
       @media (max-width: 1024px) {
@@ -446,16 +468,6 @@
         </div>
       </div>
 
-      <!-- Estratégia de Intervalos de Rosas -->
-      <div id="analise-intervalos" class="glass-effect rounded-xl p-3 mb-6 max-h-[200px] overflow-y-auto">
-        <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
-          <span class="font-semibold text-gray-300">📊 Estratégia de Intervalos de Rosas:</span>
-          <div id="intervalos-list" class="flex gap-2 flex-wrap">
-            <span class="text-gray-500">Carregando análise...</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Estratégia de Intervalos de Minutos Rosas -->
       <div id="analise-minutos-rosas" class="glass-effect rounded-xl p-3 mb-6 max-h-[200px] overflow-y-auto">
         <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
@@ -483,13 +495,29 @@
         </div>
       </div>
 
-      <!-- Padrões Top -->
-      <div id="padroes-top" class="glass-effect rounded-xl p-3 mb-6 border-2 border-green-500/50">
+      <!-- Estratégia de Intervalos de Rosas -->
+      <div id="analise-intervalos" class="glass-effect rounded-xl p-3 mb-6 max-h-[200px] overflow-y-auto">
         <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
-          <span class="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">🎯 Padrões Top:</span>
-          <div id="padroes-top-list" class="flex gap-2 flex-wrap">
-            <span class="text-gray-500">Carregando...</span>
+          <span class="font-semibold text-gray-300">📊 Estratégia de Intervalos de Rosas:</span>
+          <div id="intervalos-list" class="flex gap-2 flex-wrap">
+            <span class="text-gray-500">Carregando análise...</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Gatilho Decimal por Faixa (antecessor das Rosas) -->
+      <div id="analise-decimal-range" class="glass-effect rounded-xl p-3 mb-6">
+        <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm mb-2">
+          <span class="font-semibold text-gray-300">🎯 Gatilho Decimal (Antecessores das Rosas):</span>
+        </div>
+        <div id="decimal-range-alerta" class="hidden mb-2">
+          <div class="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-orange-500/30 to-red-500/30 border-2 border-orange-500/70 animate-pulse">
+            <span class="text-sm font-bold text-orange-300">🔥 GATILHO ATIVO!</span>
+            <span id="decimal-range-alerta-texto" class="text-xs text-orange-200"></span>
+          </div>
+        </div>
+        <div id="decimal-range-list" class="flex gap-2 flex-wrap">
+          <span class="text-gray-500">Aguardando rosas...</span>
         </div>
       </div>
 
@@ -984,104 +1012,101 @@
           return partes.length > 1 ? '.' + partes[1] : '.00';
         }
 
-        // NOVA FUNÇÃO: Detectar Padrões Top (apenas repetição nas 3 velas recentes)
-        function detectarPadroesTop(velas) {
-          if (velas.length < 3) return [];
-          
-          const padroesTop = [];
-          
-          // Pega as 3 velas mais recentes
-          const vela1 = velas[0]; // Mais recente
-          const vela2 = velas[1];
-          const vela3 = velas[2];
-          
-          // Converte números para string sem ponto: 10.50 -> "1050"
-          const num1Str = vela1.numero.toFixed(2).replace('.', '');
-          const num2Str = vela2.numero.toFixed(2).replace('.', '');
-          const num3Str = vela3.numero.toFixed(2).replace('.', '');
-          
-          // Função auxiliar para verificar se há 2 dígitos iguais entre duas strings
-          function temRepeticao(str1, str2) {
-            const digitos1 = str1.split('');
-            const digitos2 = str2.split('');
-            
-            // Procura 2 dígitos consecutivos iguais
-            for (let i = 0; i < digitos1.length - 1; i++) {
-              const par1 = digitos1[i] + digitos1[i + 1];
-              for (let j = 0; j < digitos2.length - 1; j++) {
-                const par2 = digitos2[j] + digitos2[j + 1];
-                if (par1 === par2) {
-                  return { encontrado: true, digitos: par1, vela1: str1, vela2: str2 };
+        // ── NOVO: Helpers de decimal numérico (0-99) ─────────────────────────
+        function extrairDecimalNumerico(numero) {
+          const str = numero.toFixed(2);
+          const partes = str.split('.');
+          return partes.length > 1 ? parseInt(partes[1], 10) : 0;
+        }
+
+        function calcularRangeDecimal(decimalNum) {
+          const tensDigit = Math.floor(decimalNum / 10);
+          return { min: tensDigit * 10, max: tensDigit * 10 + 9 };
+        }
+
+        // Mapeia os decimais dos 1ºs antecessores das Rosas nas últimas 100 velas
+        function mapearDecimaisAntecessoresRosas(velas) {
+          const decimaisMapeados = [];
+          const limit = Math.min(velas.length, 100);
+          const vistos = new Set();
+
+          for (let i = 0; i < limit; i++) {
+            const vela = velas[i];
+            if (parseFloat(vela.numero) >= 10) {
+              if (i + 1 < limit) {
+                const ant = velas[i + 1];
+                const decNum = extrairDecimalNumerico(parseFloat(ant.numero));
+                const range = calcularRangeDecimal(decNum);
+                const chave = `${range.min}-${range.max}`;
+                if (!vistos.has(chave)) {
+                  vistos.add(chave);
+                  decimaisMapeados.push({
+                    decimalNum,
+                    range,
+                    velaRosa: { numero: parseFloat(vela.numero).toFixed(2), horario: vela.horario },
+                    antecessor: { numero: parseFloat(ant.numero).toFixed(2), horario: ant.horario }
+                  });
                 }
               }
             }
-            return { encontrado: false };
           }
-          
-          // Verifica todas as combinações das 3 velas
-          const combinacoes = [
-            { v1: vela1, v2: vela2, s1: num1Str, s2: num2Str },
-            { v1: vela1, v2: vela3, s1: num1Str, s2: num3Str },
-            { v1: vela2, v2: vela3, s1: num2Str, s2: num3Str }
-          ];
-          
-          for (const comb of combinacoes) {
-            // Verifica apenas repetição
-            const repeticao = temRepeticao(comb.s1, comb.s2);
-            if (repeticao.encontrado) {
-              padroesTop.push({
-                tipo: 'Repetição',
-                vela1: comb.v1.numero.toFixed(2) + 'x',
-                vela2: comb.v2.numero.toFixed(2) + 'x',
-                detalhes: `Dígitos ${repeticao.digitos} repetidos`,
-                horario1: comb.v1.horario,
-                horario2: comb.v2.horario
-              });
-            }
-          }
-          
-          return padroesTop;
+          return decimaisMapeados;
         }
 
-        // Função para renderizar Padrões Top
-        function renderizarPadroesTop(padroesTop) {
-          const padroesTopList = document.getElementById('padroes-top-list');
-          
-          if (padroesTop.length === 0) {
-            padroesTopList.innerHTML = '<span class="text-gray-500">Nenhum padrão encontrado nas 3 últimas velas</span>';
+        // Verifica se a vela atual dispara algum gatilho de faixa decimal
+        function verificarGatilhoDecimalRange(velaAtual, decimaisMapeados) {
+          if (!velaAtual || decimaisMapeados.length === 0) return [];
+          const decAtual = extrairDecimalNumerico(parseFloat(velaAtual.numero));
+          return decimaisMapeados.filter(d => decAtual >= d.range.min && decAtual <= d.range.max);
+        }
+
+        // Renderiza o painel de decimais mapeados e gatilho ativo
+        function renderizarDecimalRange(velas) {
+          const lista = document.getElementById('decimal-range-list');
+          const alertaDiv = document.getElementById('decimal-range-alerta');
+          const alertaTexto = document.getElementById('decimal-range-alerta-texto');
+
+          const mapeados = mapearDecimaisAntecessoresRosas(velas);
+
+          if (mapeados.length === 0) {
+            lista.innerHTML = '<span class="text-gray-500 text-xs">Aguardando rosas nas últimas 100 casas...</span>';
+            alertaDiv.classList.add('hidden');
             return;
           }
-          
-          // Remove duplicatas (mesma combinação)
-          const padroesUnicos = [];
-          const vistos = new Set();
-          
-          for (const padrao of padroesTop) {
-            const chave = `${padrao.tipo}-${padrao.vela1}-${padrao.vela2}`;
-            if (!vistos.has(chave)) {
-              vistos.add(chave);
-              padroesUnicos.push(padrao);
-            }
+
+          // Verifica gatilho na vela mais recente
+          const velaAtual = velas.length > 0 ? velas[0] : null;
+          const gatilhosAtivos = verificarGatilhoDecimalRange(velaAtual, mapeados);
+          const decAtual = velaAtual ? extrairDecimalNumerico(parseFloat(velaAtual.numero)) : -1;
+
+          if (gatilhosAtivos.length > 0) {
+            alertaDiv.classList.remove('hidden');
+            alertaTexto.textContent = `Vela atual ${parseFloat(velaAtual.numero).toFixed(2)}x — decimal ${decAtual} ∈ faixa ${gatilhosAtivos[0].range.min}-${gatilhosAtivos[0].range.max} (origem: ${gatilhosAtivos[0].antecessor.numero}x antes da Rosa ${gatilhosAtivos[0].velaRosa.numero}x)`;
+          } else {
+            alertaDiv.classList.add('hidden');
           }
-          
-          padroesTopList.innerHTML = padroesUnicos.map(padrao => {
-            const bgClass = 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-400/50';
-            const emoji = '🔄';
-            
+
+          lista.innerHTML = mapeados.map(d => {
+            const isAtivo = gatilhosAtivos.some(g => g.range.min === d.range.min);
+            const bgClass = isAtivo
+              ? 'bg-gradient-to-r from-red-500/40 to-orange-500/40 border-red-400/70'
+              : 'bg-gradient-to-r from-orange-500/15 to-amber-500/15 border-orange-500/30';
+            const textClass = isAtivo ? 'text-red-300 animate-pulse' : 'text-orange-300';
+            const badge = isAtivo
+              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded">🔥 ATIVO</span>'
+              : '';
+
             return `
-              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${bgClass} border-2 shadow-lg">
-                <span class="text-lg">${emoji}</span>
-                <span class="font-bold text-white">${padrao.tipo}</span>
-                <span class="text-gray-300">|</span>
-                <span class="font-semibold text-yellow-300">${padrao.vela1}</span>
-                <span class="text-gray-400">&</span>
-                <span class="font-semibold text-yellow-300">${padrao.vela2}</span>
-                <span class="text-gray-300">→</span>
-                <span class="text-xs text-gray-300">${padrao.detalhes}</span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border-2 shadow-md">
+                ${badge}
+                <span class="font-bold ${textClass}">${d.range.min}–${d.range.max}</span>
+                <span class="text-gray-400 text-xs">(${d.antecessor.numero}x→🌸${d.velaRosa.numero}x)</span>
               </span>
             `;
           }).join('');
         }
+
+        // ── FIM: funções de decimal range ─────────────────────────────────────
 
         // NOVA FUNÇÃO: Analisar mercado PAGUE/TOME
         function analisarMercadoPagueTome(velas) {
@@ -2169,10 +2194,9 @@
           const dadosMinutos = analisarMinutosRosas(velas);
           renderizarMinutosRosas(dadosMinutos);
 
-          // NOVO: Detecta e renderiza Padrões Top (repetição e sequência)
-          const padroesTop = detectarPadroesTop(velas);
-          renderizarPadroesTop(padroesTop);
-          
+          // NOVO: Renderiza painel de gatilho decimal por faixa
+          renderizarDecimalRange(velas);
+
           // NOVO: Detecta TODOS os sinais de repetição no histórico
           detectarTodosSinaisRepeticao(velas);
           
@@ -2207,18 +2231,35 @@
           // Pega vela atual para marcar gatilhos em laranja
           const velaAtual = velas.length > 0 ? parseFloat(velas[0].numero).toFixed(2) : null;
           const decimalAtual = velas.length > 0 ? extrairDecimal(parseFloat(velas[0].numero)) : null;
-          
-          // Verifica quais velas são gatilhos atuais
+
+          // Verifica quais velas são gatilhos atuais (padrões detectados)
           const gatilhosAtuais = new Set();
           padroesDetectados.forEach(padrao => {
             if (velaAtual === padrao.antecessor2.numero) {
               gatilhosAtuais.add(padrao.antecessor2.numero);
             }
           });
-          
-          // Verifica se a vela atual corresponde a algum padrão decimal mapeado
+
+          // Verifica se a vela atual corresponde a algum padrão decimal mapeado (exato)
           const isDecimalMapeado = padroesDecimais.some(padrao => padrao.decimal === decimalAtual);
-          
+
+          // ── NOVO: Marca 2º antecessores das Rosas nas últimas 100 casas ──────
+          const segundosAntecessoresSet = new Set();
+          const limitRange = Math.min(velasComIntervalo.length, 100);
+          for (let sj = 0; sj < limitRange; sj++) {
+            if (parseFloat(velasComIntervalo[sj].vela.numero) >= 10) {
+              if (sj + 2 < limitRange) {
+                segundosAntecessoresSet.add(sj + 2);
+              }
+            }
+          }
+
+          // ── NOVO: Gatilho de faixa decimal na vela mais recente ──────────────
+          const decMapeados = mapearDecimaisAntecessoresRosas(velas);
+          const velaObj0 = velas.length > 0 ? velas[0] : null;
+          const gatilhosRange = verificarGatilhoDecimalRange(velaObj0, decMapeados);
+          const isGatilhoRange = gatilhosRange.length > 0;
+
           // Agora renderiza as velas com os intervalos corretos
           velasComIntervalo.forEach(({ vela, intervalo }, index) => {
             const velaElement = document.createElement("div");
@@ -2226,36 +2267,43 @@
             const horario = formatDate(vela.horario);
             const velaType = getVelaType(vela);
             const isRosa = parseFloat(vela.numero) >= 10;
-            
-            // Verifica se é um gatilho atual
+
+            // Verifica se é um gatilho atual (padrão)
             const isGatilhoAtual = gatilhosAtuais.has(numero);
-            
-            // Verifica se é a vela ATUAL (primeira/mais recente) com decimal mapeado
+
+            // Verifica se é a vela ATUAL (primeira/mais recente) com decimal mapeado exato
             const isVelaAtualComDecimal = index === 0 && isDecimalMapeado;
-            
+
+            // 2º antecessor de Rosa → laranja
+            const isSegundoAntecessor = segundosAntecessoresSet.has(index);
+
             // Verifica se a próxima vela é rosa (última antes da rosa)
             const isBeforeRosa = index > 0 && parseFloat(velasComIntervalo[index - 1].vela.numero) >= 10;
             const badgeClass = isBeforeRosa ? 'interval-badge before-rosa' : 'interval-badge';
-            
+
             const intervalBadge = showIntervals && !isRosa && intervalo > 0
               ? `<div class="${badgeClass}">${intervalo}</div>`
               : '';
-            
+
             velaElement.innerHTML = `
               ${intervalBadge}
               <div class="numero-vela">${numero}x</div>
               <div class="horario-vela">${horario}</div>
             `;
-            
+
             velaElement.dataset.numero = numero;
             velaElement.dataset.type = velaType;
             velaElement.className = `vela-card p-2 sm:p-2.5 rounded-xl text-center cursor-pointer ${getVelaClass(vela)}`;
-            
-            // Prioridade: Decimal Mapeado > Gatilho Atual
-            if (isVelaAtualComDecimal) {
+
+            // Prioridade de destaque: Gatilho Range > Decimal Mapeado > Gatilho Padrão > 2º Antecessor
+            if (index === 0 && isGatilhoRange) {
+              velaElement.classList.add('vela-gatilho-range');
+            } else if (isVelaAtualComDecimal) {
               velaElement.classList.add('vela-decimal-mapeado');
             } else if (isGatilhoAtual) {
               velaElement.classList.add('vela-gatilho-atual');
+            } else if (isSegundoAntecessor && !isRosa) {
+              velaElement.classList.add('vela-segundo-antecessor');
             }
 
             // Aplica filtro de cor
