@@ -248,22 +248,16 @@
         }
       }
 
-      .vela-segundo-antecessor {
-        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
-        color: white !important;
-        border: 2px solid #fb923c !important;
-        box-shadow: 0 0 16px rgba(249, 115, 22, 0.55) !important;
-      }
-
       @keyframes pulse-orange-range {
-        0%, 100% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.5); }
-        50% { box-shadow: 0 0 35px rgba(249, 115, 22, 0.9); }
+        0%, 100% { box-shadow: 0 0 18px rgba(249, 115, 22, 0.55); }
+        50%       { box-shadow: 0 0 32px rgba(249, 115, 22, 0.95); }
       }
 
+      /* Vela atual com decimal dentro de uma faixa mapeada → LARANJA */
       .vela-gatilho-range {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
         animation: pulse-orange-range 1.2s infinite;
-        border: 2px solid #f87171 !important;
+        border: 2px solid #fb923c !important;
         color: white !important;
       }
       
@@ -554,18 +548,22 @@
       </div>
 
       <!-- Gatilho Decimal por Faixa (antecessor das Rosas) -->
-      <div id="analise-decimal-range" class="glass-effect rounded-xl p-3 mb-6">
-        <div class="flex items-center gap-3 flex-wrap text-xs sm:text-sm mb-2">
-          <span class="font-semibold text-gray-300">🎯 Gatilho Decimal (Antecessores das Rosas):</span>
+      <div id="analise-decimal-range" class="glass-effect rounded-xl p-4 mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-semibold text-gray-300 text-sm">🎯 Gatilho Decimal</span>
+          <span class="text-xs text-gray-500">antecessores das Rosas</span>
         </div>
-        <div id="decimal-range-alerta" class="hidden mb-2">
-          <div class="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-orange-500/30 to-red-500/30 border-2 border-orange-500/70 animate-pulse">
-            <span class="text-sm font-bold text-orange-300">🔥 GATILHO ATIVO!</span>
-            <span id="decimal-range-alerta-texto" class="text-xs text-orange-200"></span>
+        <!-- Alerta ativo -->
+        <div id="decimal-range-alerta" class="hidden mb-3 flex items-center gap-3 px-3 py-2 rounded-lg bg-orange-500/20 border border-orange-500/50">
+          <span class="text-orange-400 text-lg">🔥</span>
+          <div>
+            <p class="text-orange-300 font-bold text-xs uppercase tracking-wide">Gatilho Ativo</p>
+            <p id="decimal-range-alerta-texto" class="text-orange-200 text-xs mt-0.5"></p>
           </div>
         </div>
-        <div id="decimal-range-list" class="flex gap-2 flex-wrap">
-          <span class="text-gray-500">Aguardando rosas...</span>
+        <!-- Grid de faixas -->
+        <div id="decimal-range-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          <span class="text-gray-500 text-xs col-span-full">Aguardando rosas...</span>
         </div>
       </div>
 
@@ -1141,47 +1139,50 @@
 
         // Renderiza o painel de decimais mapeados e gatilho ativo
         function renderizarDecimalRange(velas) {
-          const lista = document.getElementById('decimal-range-list');
-          const alertaDiv = document.getElementById('decimal-range-alerta');
+          const lista      = document.getElementById('decimal-range-list');
+          const alertaDiv  = document.getElementById('decimal-range-alerta');
           const alertaTexto = document.getElementById('decimal-range-alerta-texto');
 
           const mapeados = mapearDecimaisAntecessoresRosas(velas);
 
           if (mapeados.length === 0) {
-            lista.innerHTML = '<span class="text-gray-500 text-xs">Aguardando rosas nas últimas 100 casas...</span>';
+            lista.innerHTML = '<span class="text-gray-500 text-xs col-span-full">Aguardando rosas nas últimas 100 casas...</span>';
             alertaDiv.classList.add('hidden');
             return;
           }
 
-          // Verifica gatilho na vela mais recente
-          const velaAtual = velas.length > 0 ? velas[0] : null;
+          const velaAtual      = velas.length > 0 ? velas[0] : null;
           const gatilhosAtivos = verificarGatilhoDecimalRange(velaAtual, mapeados);
-          const decAtual = velaAtual ? extrairDecimalNumerico(parseFloat(velaAtual.numero)) : -1;
+          const decAtual       = velaAtual ? extrairDecimalNumerico(parseFloat(velaAtual.numero)) : -1;
 
+          // Banner de alerta
           if (gatilhosAtivos.length > 0) {
             alertaDiv.classList.remove('hidden');
-            alertaTexto.textContent = `Vela atual ${parseFloat(velaAtual.numero).toFixed(2)}x — decimal ${decAtual} ∈ faixa ${gatilhosAtivos[0].range.min}-${gatilhosAtivos[0].range.max} (origem: ${gatilhosAtivos[0].antecessor.numero}x antes da Rosa ${gatilhosAtivos[0].velaRosa.numero}x)`;
+            const g = gatilhosAtivos[0];
+            alertaTexto.textContent =
+              `${parseFloat(velaAtual.numero).toFixed(2)}x → decimal .${String(decAtual).padStart(2,'0')} está na faixa .${g.range.min}–.${g.range.max}`;
           } else {
             alertaDiv.classList.add('hidden');
           }
 
+          // Cards em grid
           lista.innerHTML = mapeados.map(d => {
             const isAtivo = gatilhosAtivos.some(g => g.range.min === d.range.min);
-            const bgClass = isAtivo
-              ? 'bg-gradient-to-r from-red-500/40 to-orange-500/40 border-red-400/70'
-              : 'bg-gradient-to-r from-orange-500/15 to-amber-500/15 border-orange-500/30';
-            const textClass = isAtivo ? 'text-red-300 animate-pulse' : 'text-orange-300';
-            const badge = isAtivo
-              ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded">🔥 ATIVO</span>'
-              : '';
+
+            if (isAtivo) {
+              return `
+                <div class="rounded-xl p-2.5 text-center border-2 border-orange-500/70 bg-orange-500/15 shadow-lg shadow-orange-500/10">
+                  <div class="text-base font-black text-orange-300 leading-none">.${d.range.min}–.${d.range.max}</div>
+                  <div class="text-[9px] font-bold text-orange-400 uppercase tracking-widest mt-1">🔥 ativo</div>
+                  <div class="text-[9px] text-gray-500 mt-0.5">${d.antecessor.numero}x → 🌸${d.velaRosa.numero}x</div>
+                </div>`;
+            }
 
             return `
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${bgClass} border-2 shadow-md">
-                ${badge}
-                <span class="font-bold ${textClass}">${d.range.min}–${d.range.max}</span>
-                <span class="text-gray-400 text-xs">(${d.antecessor.numero}x→🌸${d.velaRosa.numero}x)</span>
-              </span>
-            `;
+              <div class="rounded-xl p-2.5 text-center border border-gray-700/60 bg-black/20">
+                <div class="text-base font-black text-gray-300 leading-none">.${d.range.min}–.${d.range.max}</div>
+                <div class="text-[9px] text-gray-600 mt-1.5">${d.antecessor.numero}x → 🌸${d.velaRosa.numero}x</div>
+              </div>`;
           }).join('');
         }
 
@@ -2542,17 +2543,6 @@ RESPONDA (máximo 5 linhas, em português, seja direto):
           // Verifica se a vela atual corresponde a algum padrão decimal mapeado (exato)
           const isDecimalMapeado = padroesDecimais.some(padrao => padrao.decimal === decimalAtual);
 
-          // ── NOVO: Marca 2º antecessores das Rosas nas últimas 100 casas ──────
-          const segundosAntecessoresSet = new Set();
-          const limitRange = Math.min(velasComIntervalo.length, 100);
-          for (let sj = 0; sj < limitRange; sj++) {
-            if (parseFloat(velasComIntervalo[sj].vela.numero) >= 10) {
-              if (sj + 2 < limitRange) {
-                segundosAntecessoresSet.add(sj + 2);
-              }
-            }
-          }
-
           // ── NOVO: Gatilho de faixa decimal na vela mais recente ──────────────
           const decMapeados = mapearDecimaisAntecessoresRosas(velas);
           const velaObj0 = velas.length > 0 ? velas[0] : null;
@@ -2573,9 +2563,6 @@ RESPONDA (máximo 5 linhas, em português, seja direto):
             // Verifica se é a vela ATUAL (primeira/mais recente) com decimal mapeado exato
             const isVelaAtualComDecimal = index === 0 && isDecimalMapeado;
 
-            // 2º antecessor de Rosa → laranja
-            const isSegundoAntecessor = segundosAntecessoresSet.has(index);
-
             // Verifica se a próxima vela é rosa (última antes da rosa)
             const isBeforeRosa = index > 0 && parseFloat(velasComIntervalo[index - 1].vela.numero) >= 10;
             const badgeClass = isBeforeRosa ? 'interval-badge before-rosa' : 'interval-badge';
@@ -2594,15 +2581,13 @@ RESPONDA (máximo 5 linhas, em português, seja direto):
             velaElement.dataset.type = velaType;
             velaElement.className = `vela-card p-2 sm:p-2.5 rounded-xl text-center cursor-pointer ${getVelaClass(vela)}`;
 
-            // Prioridade de destaque: Gatilho Range > Decimal Mapeado > Gatilho Padrão > 2º Antecessor
+            // Prioridade de destaque: Gatilho Range (laranja) > Decimal Mapeado > Gatilho Padrão
             if (index === 0 && isGatilhoRange) {
               velaElement.classList.add('vela-gatilho-range');
             } else if (isVelaAtualComDecimal) {
               velaElement.classList.add('vela-decimal-mapeado');
             } else if (isGatilhoAtual) {
               velaElement.classList.add('vela-gatilho-atual');
-            } else if (isSegundoAntecessor && !isRosa) {
-              velaElement.classList.add('vela-segundo-antecessor');
             }
 
             // Aplica filtro de cor
